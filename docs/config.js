@@ -1,0 +1,1 @@
+window.LIFEOS_CONFIG = {};

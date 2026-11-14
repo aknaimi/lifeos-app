@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Life OS</title>
+<meta name="theme-color" content="#03110f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Life OS">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="sync" id="sync" hidden></div>
+
+<main class="view login" id="v-login" hidden>
+  <div class="top"><span class="brand">Life OS</span></div>
+  <section class="panel">
+    <form id="login-form" autocomplete="on" style="display:flex;flex-direction:column;gap:10px">
+      <input class="field" id="login-email" type="email" autocomplete="username" placeholder="Email" aria-label="Email" required>
+      <input class="field" id="login-pass" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password" required minlength="8">
+      <button class="btn solid" type="submit">Sign in</button>
+      <button class="btn" type="button" id="login-new">First time? Create your account</button>
+    </form>
+    <div class="toast" id="login-toast" aria-live="polite"></div>
+  </section>
+</main>
+
+<main class="view" id="v-home" hidden>
+  <div class="top"><span class="brand">Life OS</span><span class="small" id="home-updated"></span></div>
+  <section class="panel">
+    <div class="cap"><input class="field" id="home-cap" placeholder="What's on your mind?" aria-label="New thought" enterkeyhint="send"><button class="btn solid" id="home-capGo">Save</button></div>
+    <div class="toast" id="home-capToast" aria-live="polite"></div>
+  </section>
+  <section class="panel">
+    <div class="xp" id="home-xp">0</div>
+    <div class="small" id="home-lvl" style="margin-top:8px">Loading your score</div>
+    <div class="bar"><i id="home-bar" style="width:0%"></i></div>
+    <div class="stats3"><div><span class="small">Next level</span><b id="home-tonext"></b></div><div><span class="small">This week</span><b id="home-pace"></b></div><div><span class="small">Best week</span><b id="home-record"></b></div></div>
+  </section>
+  <section class="panel"><div class="lab">This week's one goal</div><div class="focus" id="home-focus">Set on Saturday.</div></section>
+  <section class="panel"><div class="lab" id="home-questLab">This week's quests</div><div id="home-quests"></div><div class="toast" id="home-questToast" aria-live="polite"></div></section>
+  <section class="panel"><div class="lab">Log a win</div><div class="chips" id="home-wins"></div><div class="toast" id="home-winToast" aria-live="polite"></div></section>
+  <section class="panel"><div class="lab"><span id="home-giftLab">Gifts</span><a href="#gifts">Add an idea →</a></div><div id="home-gifts"></div><div class="toast" id="home-giftToast" aria-live="polite"></div></section>
+  <section class="panel">
+    <h2 class="h">Offline</h2><div class="small" style="margin:4px 0 12px">How you recharge</div>
+    <div class="rh" id="home-rh"></div><div class="strip" id="home-strip"></div><div class="toast" id="home-offToast" aria-live="polite"></div>
+  </section>
+  <section class="panel"><div class="lab">More rooms</div><div class="rooms" id="home-rooms"></div></section>
+  <section class="panel"><div class="lab" id="home-bossLab">This month</div><div class="focus" id="home-boss"></div></section>
+  <section class="panel"><div class="lab">Badges</div><div class="badges" id="home-badges"></div></section>
+  <section class="panel"><div class="lab">Goals</div><div id="home-north"></div></section>
+  <section class="panel"><div class="lab">The fuel</div><div class="quote" id="home-quote"></div></section>
+  <section class="panel"><div class="lab">Lessons</div><div id="home-lessons"></div></section>
+  <section class="panel"><details><summary class="lab" style="margin:0">Recent wins ▾</summary><div id="home-recent" style="margin-top:8px"></div></details></section>
+</main>
+
+<main class="view" id="v-think" hidden>
+  <div class="top"><span class="brand">Think</span></div>
+  <section class="panel">
+    <div class="small" id="think-why" style="margin-bottom:10px"></div>
+    <textarea class="field" id="think-text" placeholder="What's on your mind?" aria-label="New thought"></textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px"><span class="small">Saved now, filed on Saturday.</span><button class="btn solid" id="think-save">Save</button></div>
+    <div class="toast" id="think-toast" aria-live="polite"></div>
+  </section>
+  <section class="panel" id="think-looseWrap" hidden><div class="lab">Waiting to be filed</div><div id="think-loose"></div></section>
+  <section class="panel"><div class="lab">Threads</div><div id="think-threads"></div></section>
+  <section class="panel"><div class="lab">Landed</div><div id="think-landed"></div></section>
+</main>
+
+<main class="view" id="v-gifts" hidden>
+  <div class="top"><span class="brand">Gifts</span></div>
+  <section class="panel" id="gifts-next"></section>
+  <section class="panel">
+    <div class="lab">Save a gift idea the moment you hear it</div>
+    <form class="g" id="gifts-form" autocomplete="off">
+      <input class="field full" id="gifts-who" list="gifts-names" placeholder="For who" aria-label="For who" enterkeyhint="next">
+      <input class="field" id="gifts-idea" placeholder="The idea, or what they said" aria-label="Gift idea" enterkeyhint="done">
+      <button class="btn solid" type="submit">Save</button>
+    </form>
+    <datalist id="gifts-names"></datalist>
+    <div class="toast" id="gifts-toast" aria-live="polite"></div>
+  </section>
+  <section class="panel"><div class="lab" id="gifts-openLab">To get</div><div id="gifts-open"></div><div class="toast" id="gifts-listToast" aria-live="polite"></div></section>
+  <section class="panel" id="gifts-doneWrap"><div class="lab">Done</div><div id="gifts-done"></div></section>
+  <section class="panel">
+    <div class="lab">Add a birthday</div>
+    <form class="g" id="bday-form" autocomplete="off" style="grid-template-columns:minmax(0,1fr) 70px 86px">
+      <input class="field" id="bday-name" placeholder="Name" aria-label="Name">
+      <select class="field" id="bday-day" aria-label="Day"></select>
+      <select class="field" id="bday-month" aria-label="Month"></select>
+      <button class="btn solid full" type="submit">Save birthday</button>
+    </form>
+    <div class="toast" id="bday-toast" aria-live="polite"></div>
+  </section>
+  <section class="panel"><div class="lab">Birthdays</div><div id="bday-list"></div></section>
+</main>
+
+<main class="view" id="v-body" hidden>
+  <div class="top"><span class="brand">Health</span><span class="small" id="body-updated"></span></div>
+  <section class="panel"><div class="lab" id="body-weekLab">This week</div><div class="week7" id="body-week"></div></section>
+  <section class="panel">
+    <div class="lab">Pick today's session</div><div class="grid3" id="body-picks"></div>
+    <div id="body-ex" style="margin-top:12px"></div>
+    <div class="grid2" style="margin-top:12px"><button class="btn solid" id="body-finish">Finish session · +10</button><button class="btn" id="body-padel">Played padel · +10</button></div>
+    <div class="toast" id="body-toast" aria-live="polite"></div>
+  </section>
+  <section class="panel"><div class="lab"><span>Fuel today</span><span id="body-fuelN"></span></div><div class="grid2" id="body-fuel"></div></section>
+  <section class="panel">
+    <div class="lab">Saturday weigh-in</div>
+    <div class="cap"><input class="field" id="body-kg" type="number" step="0.1" min="40" max="150" inputmode="decimal" placeholder="kg" aria-label="Weight in kg"><button class="btn solid" id="body-saveKg">Save</button></div>
+    <div class="toast" id="body-kgToast" aria-live="polite"></div>
+  </section>
+  <section class="panel"><div class="lab">Rules</div><div id="body-rules"></div></section>
+</main>
+
+<main class="view" id="v-admin" hidden>
+  <div class="top"><span class="brand">Admin</span><span class="small" id="admin-count"></span></div>
+  <section class="panel"><div class="bar" style="margin:0 0 10px"><i id="admin-bar"></i></div><div class="next" id="admin-next"></div></section>
+  <section class="panel"><div class="lab">To do</div><div id="admin-road"></div><div class="toast" id="admin-toast" aria-live="polite"></div></section>
+  <section class="panel"><details><summary class="lab" style="margin:0">Done ▾</summary><div id="admin-done" style="margin-top:8px"></div></details></section>
+</main>
+
+<div class="tabs" id="tabs" hidden><nav aria-label="Rooms">
+  <a href="#home" data-tab="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>Home</a>
+  <a href="#think" data-tab="think"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg>Think</a>
+  <a href="#gifts" data-tab="gifts"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18"/><path d="M12 8c-2-4-6-4-6-1.5S10 8 12 8zm0 0c2-4 6-4 6-1.5S14 8 12 8z"/></svg>Gifts</a>
+  <a href="#body" data-tab="body"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9v6M18 9v6M3 11v2M21 11v2M6 12h12"/></svg>Health</a>
+  <a href="#admin" data-tab="admin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l2 2 4-4"/><rect x="4" y="4" width="16" height="16" rx="3"/></svg>Admin</a>
+</nav></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

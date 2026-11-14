@@ -1,0 +1,5 @@
+.env
+seed/
+.tmp/
+.venv/
+docs/seed.local.json
