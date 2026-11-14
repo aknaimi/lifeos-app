@@ -1,1 +1,1 @@
-window.LIFEOS_CONFIG = {};
+window.LIFEOS_CONFIG = {"url": "https://jylogbwwimrznchukktp.supabase.co", "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5bG9nYnd3aW1yem5jaHVra3RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2OTY5NjMsImV4cCI6MjExMDI3Mjk2M30.7_hR5cr6jZJpDunGDIostjaygrrPKahHU8cmyv2C10E"};
