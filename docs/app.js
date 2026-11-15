@@ -336,6 +336,8 @@ $("login-new").addEventListener("click", async () => {
   const r = await sb.auth.signUp({email, password});
   $("login-toast").textContent = r.error ? "That didn't work: " + r.error.message : "Account created. Tell Claude, it unlocks your data in a minute.";
 });
+// Tap any room title to pull the latest from the database.
+document.querySelectorAll(".brand").forEach(b => { b.style.cursor = "pointer"; b.title = "Tap to refresh"; b.addEventListener("click", async () => { if (!sb || !session) return; setSync("Refreshing"); await flush(); await pull(); setSync("Up to date"); setTimeout(() => setSync(""), 1200); }); });
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 boot();
 })();
