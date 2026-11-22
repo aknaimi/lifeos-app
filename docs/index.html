@@ -14,7 +14,7 @@
 <link rel="icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=5">
+<link rel="stylesheet" href="app.css?v=6">
 </head>
 <body>
 <div class="sync" id="sync" hidden></div>
@@ -37,12 +37,14 @@
   <div class="top"><span class="brand">Life OS</span><span class="small" id="home-date"></span></div>
   <section class="ringwrap">
     <button class="ring" id="home-ring" aria-label="Your level"><div><b class="xp" id="home-xp">0</b><span class="small" id="home-lvl">Loading</span></div></button>
-    <details class="ringmore" id="home-stats"><summary class="small">Level details ▾</summary>
+    <div class="bonus" id="home-bonus"></div>
+    <details class="ringmore" id="home-stats"><summary class="small">Level and badges ▾</summary>
       <div class="stats3"><div><span class="small">Next level</span><b id="home-tonext"></b></div><div><span class="small">This week</span><b id="home-pace"></b></div><div><span class="small">Best week</span><b id="home-record"></b></div></div>
+      <div class="badges" id="home-badges" style="margin-top:8px"></div>
     </details>
   </section>
   <a class="panel evening" id="home-tonight" href="#tonight"></a>
-  <section class="panel"><div class="lab" id="home-questLab">This week's quests</div><div class="focus-s" id="home-focus"></div><div id="home-quests"></div><div class="toast" id="home-questToast" aria-live="polite"></div></section>
+  <section class="panel"><div class="lab" id="home-questLab">This week's quests</div><div id="home-quests"></div><div class="toast" id="home-questToast" aria-live="polite"></div></section>
   <section class="tiles" id="home-tiles"></section>
   <div class="toast" id="home-tileToast" aria-live="polite" style="margin:-4px 6px 0"></div>
   <section class="panel">
@@ -51,28 +53,21 @@
     <details style="margin-top:12px"><summary class="lab" style="margin:0"><span>More wins, picked for you</span><span>▾</span></summary><div class="chips" id="home-more" style="margin-top:8px"></div><div class="small" style="margin-top:8px">Tap + to pin one to your main buttons.</div></details>
     <div class="toast" id="home-winToast" aria-live="polite"></div>
   </section>
+
   <section class="panel">
-    <div class="cap"><input class="field" id="home-cap" placeholder="What's on your mind?" aria-label="New thought" enterkeyhint="send"><button class="btn solid" id="home-capGo">Save</button></div>
-    <div class="toast" id="home-capToast" aria-live="polite"></div>
+    <div class="lab"><span>Offline</span><span>tap = +10</span></div>
+    <div class="strip" id="home-strip"></div><div class="toast" id="home-offToast" aria-live="polite"></div>
   </section>
-  <section class="panel">
-    <div class="lab"><span>Offline · how you recharge</span><span>+10 each</span></div>
-    <div class="rh" id="home-rh"></div><div class="strip" id="home-strip"></div><div class="toast" id="home-offToast" aria-live="polite"></div>
-  </section>
-  <section class="panel"><details><summary class="lab" style="margin:0"><span id="home-bossLab">Boss and badges</span><span>▾</span></summary>
-    <div class="focus-s" id="home-boss" style="margin:10px 0"></div>
-    <div class="badges" id="home-badges"></div>
-    <div class="lab" style="margin-top:14px">Recent wins</div><div id="home-recent"></div>
-  </details></section>
+
 </main>
 
 <!-- TONIGHT -->
 <main class="view" id="v-tonight" hidden>
   <div class="top"><span><a class="back" href="#home">‹ Home</a><span class="brand">Tonight</span></span><span class="small" id="tn-date"></span></div>
-  <section class="panel"><div class="lab"><span>30 days, non-negotiable</span><span id="tn-day"></span></div><div class="dots30" id="tn-dots"></div><div class="small" style="margin-top:10px">Rough night? 3 wins and 3 thank-yous still count.</div></section>
+  <section class="panel"><div class="lab"><span>30 days, non-negotiable</span><span id="tn-day"></span></div><div class="dots30" id="tn-dots"></div><div class="small" style="margin-top:10px">Every line you write is +2. Even one counts.</div></section>
   <section class="panel"><div class="lab"><span>What were today's wins, no matter how small?</span><span id="tn-wn"></span></div><div id="tn-wins"></div></section>
   <section class="panel"><div class="lab"><span>What am I grateful for today?</span><span id="tn-gn"></span></div><div id="tn-grat"></div></section>
-  <button class="btn solid big" id="tn-done">Done for today · +20</button>
+  <button class="btn solid big" id="tn-done">Save tonight</button>
   <div class="toast" id="tn-toast" aria-live="polite"></div>
   <section class="panel"><div class="lab">Earlier</div><div id="tn-past"></div></section>
 </main>
@@ -80,16 +75,6 @@
 <!-- HEALTH -->
 <main class="view" id="v-body" hidden>
   <div class="top"><span class="brand">Health</span><span class="small" id="body-updated"></span></div>
-  <section class="panel"><div class="lab" id="body-weekLab">This week</div><div class="week7" id="body-week"></div></section>
-  <section class="panel">
-    <div class="lab">Pick today's session</div><div class="grid3" id="body-picks"></div>
-    <div id="body-ex" style="margin-top:12px"></div>
-    <div class="small" style="margin-top:8px">Type the kg and reps you did. Beat last time by one rep or 2.5 kg: it turns green.</div>
-    <div class="grid2" style="margin-top:12px"><button class="btn solid" id="body-finish">Finish session · +10</button><button class="btn" id="body-padel">Played padel · +10</button></div>
-    <div class="toast" id="body-toast" aria-live="polite"></div>
-  </section>
-  <section class="panel"><div class="lab"><span>Getting stronger</span><span id="body-strN"></span></div><div id="body-chart"></div><div class="chips" id="body-strPick" style="margin-top:8px"></div></section>
-  <section class="panel"><div class="lab"><span>Fuel today</span><span id="body-fuelN"></span></div><div class="grid2" id="body-fuel"></div></section>
   <section class="panel">
     <div class="lab"><span>Saturday weight</span><span id="body-kgNow"></span></div>
     <div id="body-wchart"></div>
@@ -97,6 +82,18 @@
     <div class="cap"><input class="field" id="body-kg" type="number" step="0.1" min="40" max="150" inputmode="decimal" placeholder="kg" aria-label="Weight in kg"><button class="btn solid" id="body-saveKg">Save</button></div>
     <div class="toast" id="body-kgToast" aria-live="polite"></div>
   </section>
+  <section class="panel"><div class="lab" id="body-weekLab">This week</div><div class="week7" id="body-week"></div></section>
+  <section class="panel">
+    <div class="lab">Pick today's session</div><div class="grid3" id="body-picks"></div>
+    <div id="body-ex" style="margin-top:12px"></div>
+    <div class="small" style="margin-top:8px">Type the kg and reps you did. Beat last time by one rep or 2.5 kg: it turns green.</div>
+    <div class="grid2" style="margin-top:12px"><button class="btn solid" id="body-finish">Finish session · +20</button><button class="btn" id="body-padel">Played padel · +10</button></div>
+    <div class="toast" id="body-toast" aria-live="polite"></div>
+  </section>
+  <section class="panel"><div class="lab"><span>Getting stronger</span><span id="body-strN"></span></div><div id="body-chart"></div><div class="chips" id="body-strPick" style="margin-top:8px"></div></section>
+
+
+  <section class="fuelrow"><span class="small" id="body-fuelN">Food today</span><div class="chips" id="body-fuel"></div></section>
   <section class="panel"><details><summary class="lab" style="margin:0"><span>Rules</span><span>▾</span></summary><div id="body-rules" style="margin-top:8px"></div></details></section>
 </main>
 
@@ -104,11 +101,11 @@
 <main class="view" id="v-money" hidden>
   <div class="top"><span class="brand">Money</span><span class="small" id="mo-updated"></span></div>
   <section class="tiles" id="mo-tiles"></section>
-  <section class="panel" id="mo-goal"></section>
   <section class="panel" id="mo-income"></section>
   <section class="panel"><div class="lab"><span>Where it goes · each month</span><span id="mo-burn"></span></div><div id="mo-parts"></div><div class="toast" id="mo-toast" aria-live="polite"></div></section>
-  <section class="panel" id="mo-todoWrap"><div class="lab">To sort at the money session</div><div id="mo-todo"></div></section>
-  <section class="panel"><div class="lab">Pots</div><div id="mo-pots"></div></section>
+  <section class="panel soon" id="mo-soon"></section>
+  <section class="panel save" id="mo-save"></section>
+  <section class="panel" id="mo-goals"></section>
 </main>
 
 <!-- THINK -->
@@ -118,10 +115,11 @@
     <div class="cap"><input class="field" id="think-text" placeholder="What's on your mind?" aria-label="New thought" enterkeyhint="send"><button class="btn solid" id="think-save">Save</button></div>
     <div class="toast" id="think-toast" aria-live="polite"></div>
   </section>
-  <section class="panel" id="think-looseWrap" hidden><div class="lab">Waiting to be filed</div><div id="think-loose"></div></section>
-  <section class="panel"><details><summary class="lab" style="margin:0"><span id="think-tLab">Threads</span><span>▾</span></summary><div id="think-threads" style="margin-top:6px"></div></details></section>
+  <section class="panel mal" id="think-mal"></section>
+  <section class="panel" id="think-obs"></section>
+  <section class="panel"><div class="lab"><span>Your web</span><span class="small">tap a theme</span></div><div id="think-web"></div><div id="think-open"></div></section>
+  <section class="panel" id="think-looseWrap" hidden><div class="lab"><span>Waiting to be linked</span><span>tap a theme to link</span></div><div id="think-loose"></div></section>
   <section class="panel"><details><summary class="lab" style="margin:0"><span id="think-sLab">Side projects</span><span>▾</span></summary><div id="think-side" style="margin-top:6px"></div></details></section>
-  <section class="panel"><details><summary class="lab" style="margin:0"><span>Landed</span><span>▾</span></summary><div id="think-landed" style="margin-top:6px"></div></details></section>
 </main>
 
 <!-- PEOPLE -->
@@ -185,6 +183,14 @@
   <button class="btn" id="sheet-add" style="width:100%">+ Add a win</button>
 </div></div>
 
+<div class="sheet" id="wsheet" hidden><div class="sheetin" style="text-align:center">
+  <div class="small">What time were you up?</div>
+  <input type="time" class="timepick" id="wsheet-t" value="06:00" aria-label="Wake time">
+  <div class="small" id="wsheet-note" style="margin:6px 0 16px">Goal: 06:00</div>
+  <div class="grid2"><button class="btn" id="wsheet-cancel">Cancel</button><button class="btn solid" id="wsheet-save">Save</button></div>
+</div></div>
+<div class="fx" id="fx" aria-hidden="true"></div>
+
 <div class="tabs" id="tabs" hidden><nav aria-label="Rooms">
   <a href="#home" data-tab="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>Home</a>
   <a href="#body" data-tab="body"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9v6M18 9v6M3 11v2M21 11v2M6 12h12"/></svg>Health</a>
@@ -196,6 +202,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

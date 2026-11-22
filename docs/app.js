@@ -94,8 +94,15 @@ function toast(el, html, undo){
   el.innerHTML = html + (undo ? ' <button type="button">Undo</button>' : "");
   if (undo) el.querySelector("button").onclick = () => { undo(); el.textContent = "Undone."; };
 }
-function logWin(w, toastEl){
+function pop(xp, el){
+  const fx = $("fx"); if (!fx) return; const r = el && el.getBoundingClientRect ? el.getBoundingClientRect() : {left:innerWidth/2, top:innerHeight/2, width:0};
+  const b = document.createElement("span"); b.className = "plus"; b.textContent = typeof xp === "number" ? "+" + xp : xp; b.style.left = (r.left + r.width/2) + "px"; b.style.top = (r.top) + "px"; fx.appendChild(b); setTimeout(() => b.remove(), 1100);
+  if (el && el.classList){ el.classList.remove("popped"); void el.offsetWidth; el.classList.add("popped"); }
+  if (navigator.vibrate) try{ navigator.vibrate(12); }catch(e){}
+}
+function logWin(w, toastEl, el){
   const id = add("wins", {key:w.key, label:w.label, xp:w.xp, date:todayIso(), at:nowIso(), synced:false});
+  pop(w.xp, el);
   if (toastEl) toast(toastEl, "Logged: " + esc(w.label) + " +" + w.xp, () => del("wins", id));
   return id;
 }
@@ -116,8 +123,9 @@ const MORE_WINS = [
   {key:"sauna",label:"Sauna",xp:10},{key:"family",label:"Called family",xp:10},{key:"giftsent",label:"Sent a gift",xp:20},
   {key:"prep",label:"Cooked or prep day",xp:10},{key:"pen",label:"Wrote with a pen",xp:10},{key:"learn",label:"Learned something new",xp:10},
   {key:"museum",label:"Museum or gallery",xp:20},{key:"kind",label:"Was kind to myself",xp:10}];
-function winButtons(){ const m = get("meta","winButtons"); return m && m.items ? m.items : (home().xpTable || []).map(w => ({key:w.key, label:w.label, xp:w.xp})); }
-function moreWins(){ const mine = winButtons().map(w => w.key); return MORE_WINS.filter(w => !mine.includes(w.key)); }
+const MAIN8 = ["gym","padel","opener","date","phoneoff","spont","event","journal"], SKIP = ["pocket3","admin","gift"];
+function winButtons(){ const m = get("meta","winButtons"); if (m && m.items) return m.items; const t = home().xpTable || []; return MAIN8.map(k => t.find(w => w.key === k)).filter(Boolean).map(w => ({key:w.key, label:w.key === "gym" ? "Gym" : w.key === "phoneoff" ? "Phone off 21:00" : w.label, xp:w.key === "gym" ? 20 : w.xp})); }
+function moreWins(){ const mine = winButtons().map(w => w.key), t = (home().xpTable || []).filter(w => !SKIP.includes(w.key)).map(w => ({key:w.key, label:w.label, xp:w.xp})); const pool = t.concat(MORE_WINS.filter(w => !t.find(x => x.key === w.key))); return pool.filter(w => !mine.includes(w.key)); }
 function saveButtons(items){ set("meta","winButtons",{items, updated:todayIso()}); }
 
 function levelInfo(xp){
@@ -142,20 +150,22 @@ function renderHome(){
   const goal = Math.max(Math.ceil(Math.max(0, top.xp - xp) / Math.max(1, Math.ceil(days/7))), Number(h.weekTarget)||0);
   $("home-pace").innerHTML = wk + " / " + goal + "<small>" + (wk >= goal ? "Target hit" : (goal - wk) + " to go") + "</small>";
   $("home-record").innerHTML = (h.bestWeek || 0) + " XP<small>" + days + " days left</small>";
+  const earned = (h.badges || []).filter(x => x.earned).length;
+  $("home-bonus").innerHTML = (h.boss ? '<span class="bchip"><b>Boss</b> ' + esc(h.boss.name) + (h.boss.status === "won" ? " ✓" : "") + '</span>' : "") + '<span class="bchip"><b>' + earned + '</b> badges</span>';
 
   // Tonight card
-  const td = tonightDoc(), wn = (td.wins||[]).filter(Boolean).length, gn = (td.grateful||[]).filter(Boolean).length, done = tonightDays();
+  const td = tonightDoc(), wn = (td.wins||[]).filter(Boolean).length, gn = (td.grateful||[]).filter(Boolean).length, tdx = td.xp != null ? td.xp : 2*Math.min(wn+gn, 8), done = tonightDays();
   const dayN = done.includes(todayIso()) ? done.length : done.length + 1;
-  $("home-tonight").innerHTML = '<div class="lab"><span>Tonight' + (new Date().getHours() < 18 ? " · from 18:00" : "") + '</span><span>day ' + Math.min(dayN,30) + ' of 30</span></div><div class="focus-s">' + (td.done ? "Done for today. Well done." : "Today's wins, no matter how small") + '</div><div class="small">' + wn + ' of 10 wins · ' + gn + ' of 10 grateful' + (td.done ? "" : " · tap to write") + '</div>';
+  $("home-tonight").innerHTML = '<div class="lab"><span>Tonight' + (new Date().getHours() < 18 ? " · from 18:00" : "") + '</span><span>day ' + Math.min(dayN,30) + ' of 30</span></div><div class="focus-s">' + (td.done ? "Saved tonight · +" + tdx : "Today's wins, no matter how small") + '</div><div class="small">' + (td.done ? wn + ' wins · ' + gn + ' grateful · tap to add' : '5 wins · 3 grateful · +2 a line')  + '</div>';
 
-  // Quests
-  $("home-focus").textContent = h.focus || "";
+  // Quests (only this week's; stale ones hide until Saturday)
   const q = questsNow(), qd = get("quests", mon) || {}, qdone = qd.done || [];
-  if (q && q.items && q.items.length){
+  const fresh = q && q.week && q.week >= localIso(new Date(new Date(mon+"T12:00:00").getTime() - 6*86400000));
+  if (q && q.items && q.items.length && fresh){
     $("home-questLab").innerHTML = "<span>This week's quests · " + qdone.length + " of " + q.items.length + "</span><span>+" + (q.bonus || 50) + " if all</span>";
-    $("home-quests").innerHTML = q.items.map((it,i) => '<button class="quest' + (qdone.includes(i) ? " done" : "") + '" data-q="' + i + '"><span class="c">' + (qdone.includes(i) ? "✓" : "") + '</span><span><span class="k">' + esc(it.kind || "") + '</span><span class="qt">' + esc(it.t) + '</span></span></button>').join("")
+    $("home-quests").innerHTML = q.items.map((it,i) => '<button class="quest' + (qdone.includes(i) ? " done" : "") + '" data-q="' + i + '"><span class="c">' + (qdone.includes(i) ? "✓" : "") + '</span><span class="qt">' + esc(it.t) + '</span></button>').join("")
       + (qdone.length === q.items.length && !qd.claimed ? '<button class="btn solid" id="home-claim" style="margin-top:10px">Claim the +' + (q.bonus || 50) + ' bonus</button>' : qd.claimed ? '<div class="small" style="margin-top:8px">Bonus claimed.</div>' : "");
-  } else $("home-quests").innerHTML = '<div class="empty">Your three quests arrive with Saturday\'s chat.</div>';
+  } else { $("home-questLab").textContent = "This week's quests"; $("home-quests").innerHTML = '<div class="empty">New quests arrive with Saturday\'s /life.</div>'; }
 
   // Tiles
   const b = get("meta","body") || {}, isos = weekDays().map(localIso);
@@ -165,7 +175,8 @@ function renderHome(){
   let fourth;
   if (todayIso() <= wakeUntil()){
     const wd = isos.map(d => get("wake", d)), today = get("wake", todayIso());
-    fourth = '<button class="tile3" id="home-wake"><div class="hd"><span>Wake · 06:00</span><span>›</span></div><div><div class="dots7">' + wd.map((w,i) => '<i class="' + (w ? (w.t <= "06:15" ? "ok" : "late") : (isos[i] === todayIso() ? "now" : "")) + '"></i>').join("") + '</div><div class="small">' + (today ? "Up at " + esc(today.t) + " today" : "Tap when you're up") + '</div></div></button>';
+    const hgt = t => { if (!t) return 0; const [H,M] = t.split(":").map(Number), mins = H*60+M; return Math.max(12, Math.min(100, 100 - (mins - 330)/3)); };
+    fourth = '<button class="tile3 wake" id="home-wake"><div class="hd"><span>Wake · goal 06:00</span></div><div class="wbars">' + wd.map((w,i) => '<span class="wb' + (w ? (w.t <= "06:15" ? " ok" : " late") : "") + (isos[i] === todayIso() ? " today" : "") + '"><i style="height:' + (w ? hgt(w.t) : 8) + '%"></i><em>' + "MTWTFSS"[i] + '</em></span>').join("") + '</div><div class="small">' + (today ? "Up at <b>" + esc(today.t) + "</b> today" : "Tap when you're up") + '</div></button>';
   } else {
     const steps = all("admin"), nx = steps.filter(s => s.state !== "done").sort((a,c) => (a.order||0)-(c.order||0)).find(s => s.state === "you" || s.state === "due");
     fourth = '<a class="tile3" href="#admin"><div class="hd"><span>Admin</span><span>›</span></div><div><div class="n">' + esc(nx ? nx.t.split(" ").slice(0,2).join(" ") : "Clear") + '</div><div class="small">' + steps.filter(s => s.state === "done").length + ' of ' + steps.length + ' done</div></div></a>';
@@ -181,23 +192,15 @@ function renderHome(){
 
   // Offline
   const off = get("meta","offline") || {}, wkOff = get("offline", mon) || {}, offDone = wkOff.done || [];
-  const now = new Date(), dow = now.getDay(), hr = now.getHours();
-  const isLive = k => (k === "sat" && dow === 6) || (k === "eve" && dow >= 1 && dow <= 5 && hr >= 20);
-  $("home-rh").innerHTML = (off.rhythms || []).map(r => '<span' + (isLive(r.k) ? ' class="now"' : '') + '><b>' + esc(r.t) + '</b> · ' + esc(r.w) + (isLive(r.k) ? " · now" : "") + '</span>').join("");
   $("home-strip").innerHTML = (off.recharges || []).map(r => { const on = offDone.includes(r.id), bg = r.img ? "url('" + esc(r.img) + "')" : esc(r.bg || "#555");
     return '<button class="tile' + (on ? " done" : "") + '" data-off="' + esc(r.id) + '" aria-pressed="' + on + '" style="background:' + bg + ';background-size:cover;background-position:center">' + (r.img ? "" : '<span class="em">' + esc(r.em || "") + '</span>') + '<span class="ck">' + (on ? "✓" : "") + '</span><span class="nm">' + esc(r.name) + (on ? "<small>Done this week · +10</small>" : "") + '</span></button>'; }).join("");
 
-  // Boss and badges
-  if (h.boss){ $("home-bossLab").textContent = "Boss and badges · " + (h.boss.month || ""); $("home-boss").textContent = h.boss.name + (h.boss.status === "won" ? " · won" : ""); }
   $("home-badges").innerHTML = (h.badges || []).map(bd => '<div class="badge' + (bd.earned ? " on" : "") + '"><b>' + esc(bd.name) + '</b><span class="small">' + esc(bd.earned ? "Earned " + bd.earned : (bd.how || "")) + '</span>' + (!bd.earned && bd.of ? '<div class="bprog"><i style="width:' + Math.round((bd.have||0)/bd.of*100) + '%"></i></div><span class="small">' + (bd.have||0) + " of " + bd.of + "</span>" : "") + '</div>').join("");
-  const mine = all("wins").sort((a,c) => String(c.at).localeCompare(String(a.at))).slice(0,6).map(w => ({date:w.date, label:w.label, xp:w.xp}));
-  const recent = mine.concat((h.recent || []).slice(0, Math.max(0, 6 - mine.length)));
-  $("home-recent").innerHTML = recent.map(r => '<div class="row"><span class="t">' + esc(r.label) + '<span>' + esc(fmt(r.date)) + '</span></span><span class="small">+' + r.xp + '</span></div>').join("") || '<div class="empty">Your recent wins show here.</div>';
 }
 document.addEventListener("click", e => {
-  const w = e.target.closest("#home-wins .chip"); if (w){ const it = winButtons()[Number(w.dataset.w)]; if (it) logWin(it, $("home-winToast")); return; }
-  const mw = e.target.closest("[data-mw]"); if (mw){ const it = MORE_WINS.find(x => x.key === mw.dataset.mw); if (it) logWin(it, $("home-winToast")); return; }
-  const pn = e.target.closest("[data-pin]"); if (pn){ const it = MORE_WINS.find(x => x.key === pn.dataset.pin); if (it){ saveButtons(winButtons().concat([Object.assign({}, it)])); $("home-winToast").textContent = "Pinned: " + it.label; } return; }
+  const w = e.target.closest("#home-wins .chip"); if (w){ const it = winButtons()[Number(w.dataset.w)]; if (it) logWin(it, $("home-winToast"), w); return; }
+  const mw = e.target.closest("[data-mw]"); if (mw){ const it = moreWins().find(x => x.key === mw.dataset.mw); if (it) logWin(it, $("home-winToast"), mw); return; }
+  const pn = e.target.closest("[data-pin]"); if (pn){ const it = moreWins().find(x => x.key === pn.dataset.pin); if (it){ saveButtons(winButtons().concat([Object.assign({}, it)])); $("home-winToast").textContent = "Pinned: " + it.label; } return; }
   const q = e.target.closest("#home-quests .quest");
   if (q){ const mon = mondayIso(), qd = Object.assign({}, get("quests", mon) || {}), d = (qd.done || []).slice(), i = Number(q.dataset.q), at = d.indexOf(i); if (at >= 0) d.splice(at,1); else d.push(i); qd.done = d; set("quests", mon, qd); return; }
   if (e.target.closest("#home-claim")){ const q2 = questsNow(), mon = mondayIso(); logWin({key:"quests", label:"Quest stack complete", xp:q2.bonus || 50}, $("home-questToast")); update("quests", mon, {claimed:true}); return; }
@@ -205,14 +208,12 @@ document.addEventListener("click", e => {
   if (t){ const mon = mondayIso(), wk = Object.assign({}, get("offline", mon) || {}), d = (wk.done || []).slice(), at = d.indexOf(t.dataset.off), wins = Object.assign({}, wk.wins || {});
     const r = ((get("meta","offline") || {}).recharges || []).find(x => x.id === t.dataset.off) || {name:t.dataset.off};
     if (at >= 0){ d.splice(at,1); if (wins[t.dataset.off]) del("wins", wins[t.dataset.off]); delete wins[t.dataset.off]; $("home-offToast").textContent = ""; }
-    else { d.push(t.dataset.off); wins[t.dataset.off] = logWin({key:"offline", label:"Offline · " + r.name, xp:10}); $("home-offToast").textContent = "Marked. +10. Good for you."; }
+    else { d.push(t.dataset.off); wins[t.dataset.off] = logWin({key:"offline", label:"Offline · " + r.name, xp:10}, null, t); $("home-offToast").textContent = "Nice. +10."; }
     wk.done = d; wk.wins = wins; set("offline", mon, wk); return; }
   const wk = e.target.closest("#home-wake");
-  if (wk){ const d = todayIso(), cur = get("wake", d), n = new Date(), t2 = pad(n.getHours()) + ":" + pad(n.getMinutes());
-    if (cur){ const v = prompt("What time did you get up today? (HH:MM)", cur.t); if (v && /^\d{1,2}:\d{2}$/.test(v.trim())) update("wake", d, {t:v.trim().padStart(5,"0")}); return; }
-    if (n.getHours() >= 12){ const v = prompt("What time did you get up today? (HH:MM)", "06:00"); if (!v || !/^\d{1,2}:\d{2}$/.test(v.trim())) return; set("wake", d, {date:d, t:v.trim().padStart(5,"0"), at:nowIso()}); }
-    else set("wake", d, {date:d, t:t2, at:nowIso()});
-    $("home-tileToast").textContent = "Up at " + get("wake", d).t + ". Logged."; return; }
+  if (wk){ const d = todayIso(), cur = get("wake", d), n = new Date();
+    if (!cur && n.getHours() < 12){ const t2 = pad(n.getHours()) + ":" + pad(n.getMinutes()); set("wake", d, {date:d, t:t2, at:nowIso()}); pop(t2 <= "06:15" ? "On goal ✓" : "Up " + t2, wk); $("home-tileToast").textContent = "Up at " + t2 + ". Logged. Tap again to change it."; return; }
+    $("wsheet-t").value = cur ? cur.t : "06:00"; $("wsheet").hidden = false; return; }
   const buy = e.target.closest("[data-buy]");
   if (buy){ const g = get("giftIdeas", buy.dataset.buy); if (!g) return; const id = buy.dataset.buy, now = nowIso();
     update("giftIdeas", id, {bought:true, boughtAt:now});
@@ -221,8 +222,10 @@ document.addEventListener("click", e => {
   const gx = e.target.closest("[data-gdel]");
   if (gx){ const id = gx.dataset.gdel, keep = get("giftIdeas", id); del("giftIdeas", id); toast($("gifts-toast"), "Deleted.", () => set("giftIdeas", id, keep)); return; }
 });
-$("home-capGo").addEventListener("click", () => { if (capture($("home-cap").value, $("home-capToast"))) $("home-cap").value = ""; });
-$("home-cap").addEventListener("keydown", e => { if (e.key === "Enter") $("home-capGo").click(); });
+$("wsheet-cancel").addEventListener("click", () => { $("wsheet").hidden = true; });
+$("wsheet").addEventListener("click", e => { if (e.target.id === "wsheet") $("wsheet").hidden = true; });
+$("wsheet-t").addEventListener("input", () => { const v = $("wsheet-t").value; $("wsheet-note").textContent = v && v <= "06:15" ? "On goal. Nice." : "Goal: 06:00"; });
+$("wsheet-save").addEventListener("click", () => { const v = $("wsheet-t").value, d = todayIso(); if (!/^\d{2}:\d{2}$/.test(v)) return; set("wake", d, Object.assign({}, get("wake", d) || {}, {date:d, t:v, at:nowIso()})); $("wsheet").hidden = true; $("home-tileToast").textContent = "Up at " + v + ". Saved."; });
 $("home-ring").addEventListener("click", () => { $("home-stats").open = !$("home-stats").open; });
 
 /* Edit win buttons */
@@ -246,26 +249,28 @@ function renderTonight(){
   const dayN = Math.min(30, Math.round((new Date(d+"T12:00:00") - s)/86400000) + 1);
   $("tn-day").textContent = "day " + dayN + " · " + done.length + " done";
   $("tn-dots").innerHTML = [...Array(30)].map((_,i) => { const di = new Date(s); di.setDate(s.getDate()+i); const iso = localIso(di); return '<i class="' + (done.includes(iso) ? "ok" : iso === d ? "now" : iso < d ? "miss" : "") + '" title="' + iso + '"></i>'; }).join("");
-  const box = (k, el) => { if (document.activeElement && document.activeElement.dataset && document.activeElement.dataset.tk === k) return; $(el).innerHTML = [...Array(10)].map((_,i) => '<input class="field line" data-tk="' + k + '" data-ti="' + i + '" placeholder="' + (i+1) + '." value="' + esc(tnDraft[k][i] || "") + '" enterkeyhint="next">').join(""); };
+  const N = {wins:5, grateful:3};
+  const box = (k, el) => { if (document.activeElement && document.activeElement.dataset && document.activeElement.dataset.tk === k) return; $(el).innerHTML = [...Array(N[k])].map((_,i) => '<input class="field line" data-tk="' + k + '" data-ti="' + i + '" placeholder="' + (i+1) + '." value="' + esc(tnDraft[k][i] || "") + '" enterkeyhint="next">').join(""); };
   box("wins","tn-wins"); box("grateful","tn-grat");
   const wn = tnDraft.wins.filter(x => x && x.trim()).length, gn = tnDraft.grateful.filter(x => x && x.trim()).length;
-  $("tn-wn").textContent = wn + " / 10"; $("tn-gn").textContent = gn + " / 10";
-  $("tn-done").textContent = doc.done ? "Done for today ✓" : "Done for today · +20";
+  $("tn-wn").textContent = wn + " / 5"; $("tn-gn").textContent = gn + " / 3";
+  $("tn-done").textContent = doc.done ? "Saved · +" + (doc.xp || 0) + " ✓ (tap to update)" : "Save tonight · +" + 2*(wn+gn);
   $("tn-past").innerHTML = all("tonight").filter(t => t.id !== d && (t.wins||[]).some(Boolean)).sort((a,c) => c.id.localeCompare(a.id)).slice(0,7).map(t => '<details class="past"><summary class="row"><span class="t">' + esc(dayName(t.id)) + '<span>' + (t.wins||[]).filter(Boolean).length + ' wins · ' + (t.grateful||[]).filter(Boolean).length + ' grateful</span></span><span>›</span></summary><div class="small" style="padding:0 0 10px">' + (t.wins||[]).filter(Boolean).map(x => "· " + esc(x)).join("<br>") + '</div></details>').join("") || '<div class="empty">Your past nights show here.</div>';
 }
 function tnSave(){ const d = tnDraft.date, cur = get("tonight", d) || {}; set("tonight", d, Object.assign({}, cur, {date:d, wins:tnDraft.wins, grateful:tnDraft.grateful, at:nowIso()})); }
 document.addEventListener("input", e => { const k = e.target.dataset && e.target.dataset.tk; if (!k) return; tnDraft[k][Number(e.target.dataset.ti)] = e.target.value;
-  const wn = tnDraft.wins.filter(x => x && x.trim()).length, gn = tnDraft.grateful.filter(x => x && x.trim()).length; $("tn-wn").textContent = wn + " / 10"; $("tn-gn").textContent = gn + " / 10";
+  const wn = tnDraft.wins.filter(x => x && x.trim()).length, gn = tnDraft.grateful.filter(x => x && x.trim()).length; $("tn-wn").textContent = wn + " / 5"; $("tn-gn").textContent = gn + " / 3"; $("tn-done").textContent = "Save tonight · +" + 2*(wn+gn);
   clearTimeout(tnTimer); tnTimer = setTimeout(tnSave, 700); });
 document.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.dataset && e.target.dataset.tk){ e.preventDefault(); const n = e.target.nextElementSibling; if (n) n.focus(); else e.target.blur(); } });
 $("tn-done").addEventListener("click", () => {
-  const d = tnDraft.date, wn = tnDraft.wins.filter(x => x && x.trim()).length, gn = tnDraft.grateful.filter(x => x && x.trim()).length, cur = get("tonight", d) || {};
-  if (cur.done){ $("tn-toast").textContent = "Already done today."; return; }
-  if (wn < 3 || gn < 3){ $("tn-toast").textContent = "At least 3 wins and 3 thank-yous, then it counts."; return; }
-  clearTimeout(tnTimer);
-  const wid = logWin({key:"tonight", label:"Tonight · " + wn + " wins, " + gn + " grateful", xp:20});
-  set("tonight", d, Object.assign({}, cur, {date:d, wins:tnDraft.wins, grateful:tnDraft.grateful, done:true, win:wid, at:nowIso()}));
-  toast($("tn-toast"), "Day done. +20.", () => { del("wins", wid); update("tonight", d, {done:false}); });
+  const d = tnDraft.date, n = tnDraft.wins.slice(0,5).filter(x => x && x.trim()).length + tnDraft.grateful.slice(0,3).filter(x => x && x.trim()).length, cur = get("tonight", d) || {};
+  if (!n){ $("tn-toast").textContent = "Write one line, even a small one."; return; }
+  clearTimeout(tnTimer); const wid = "tonight-" + d, old = cur.win && cur.win !== wid ? get("wins", cur.win) : null, prev = cur.xp != null ? cur.xp : (old ? Number(old.xp)||0 : 0), xp = Math.max(2*n, prev), gain = xp - prev;
+  if (old) del("wins", cur.win);
+  set("wins", wid, {key:"tonight", label:"Tonight · " + n + " lines", xp, date:d, at:nowIso(), synced:false});
+  set("tonight", d, Object.assign({}, cur, {date:d, wins:tnDraft.wins, grateful:tnDraft.grateful, done:true, xp, at:nowIso()}));
+  if (gain > 0) pop(gain, $("tn-done"));
+  $("tn-toast").textContent = gain > 0 ? "Saved. +" + gain + "." : "Saved.";
 });
 
 /* ---------- Health ---------- */
@@ -299,10 +304,10 @@ function renderBody(){
   $("body-chart").innerHTML = spark(pts, {label:strEx + " weight over time", empty:"Log " + esc(strEx || "an exercise") + " twice and your strength line appears here."});
   $("body-strPick").innerHTML = names.map(n => '<button class="chip sm' + (n === strEx ? " on" : "") + '" data-str="' + esc(n) + '">' + esc(n) + '</button>').join("");
   // Fuel
-  const F = [{k:"breakfast",t:"Good breakfast"},{k:"lunch",t:"Good lunch"},{k:"dinner",t:"Good dinner"},{k:"shake",t:"Shake"}];
+  const F = [{k:"breakfast",t:"Breakfast"},{k:"lunch",t:"Lunch"},{k:"dinner",t:"Dinner"},{k:"shake",t:"Shake / yogurt"}];
   const td = get("fuel", todayIso()) || {};
-  $("body-fuelN").textContent = F.filter(f => td[f.k]).length + " of " + F.length;
-  $("body-fuel").innerHTML = F.map(f => '<button class="chip big' + (td[f.k] ? " on" : "") + '" data-fuel="' + esc(f.k) + '">' + esc(f.t) + '</button>').join("");
+  $("body-fuelN").textContent = "Food today · " + F.filter(f => td[f.k]).length + " of " + F.length;
+  $("body-fuel").innerHTML = F.map(f => '<button class="chip sm' + (td[f.k] ? " on" : "") + '" data-fuel="' + esc(f.k) + '">' + (td[f.k] ? "✓ " : "") + esc(f.t) + '</button>').join("");
   // Weight
   const ws = all("weights").filter(w => w.kg).sort((a,c) => String(a.date).localeCompare(String(c.date)));
   $("body-kgNow").textContent = ws.length ? ws[ws.length-1].kg + " kg · " + fmt(ws[ws.length-1].date) : "";
@@ -321,11 +326,11 @@ $("body-finish").addEventListener("click", () => {
   const sel = renderBody(); if (!sel) return;
   const ex = []; document.querySelectorAll("#body-ex .num[data-f=kg]").forEach(i => { const r = document.querySelector('#body-ex .num[data-f=reps][data-n="' + CSS.escape(i.dataset.n) + '"]'); const kg = i.value === "" ? null : Number(i.value), reps = r && r.value !== "" ? Number(r.value) : null; if (reps != null || kg != null) ex.push({n:i.dataset.n, kg, reps}); });
   const at = nowIso(), sid = add("sets", {date:todayIso(), at, session:sel.id, ex});
-  const wid = add("wins", {key:"gym", label:"Gym · " + sel.id, session:sel.id, xp:10, date:todayIso(), at, synced:false});
-  draft = {}; pick = null;
-  toast($("body-toast"), esc(sel.id) + " logged, " + ex.length + " exercises. +10 XP", () => { del("wins", wid); del("sets", sid); });
+  const wid = add("wins", {key:"gym", label:"Gym · " + sel.id, session:sel.id, xp:20, date:todayIso(), at, synced:false});
+  draft = {}; pick = null; pop(20, $("body-finish"));
+  toast($("body-toast"), esc(sel.id) + " logged, " + ex.length + " exercises. +20 XP", () => { del("wins", wid); del("sets", sid); });
 });
-$("body-padel").addEventListener("click", () => logWin({key:"padel", label:"Padel", xp:10}, $("body-toast")));
+$("body-padel").addEventListener("click", () => logWin({key:"padel", label:"Padel", xp:10}, $("body-toast"), $("body-padel")));
 $("body-saveKg").addEventListener("click", () => { const v = parseFloat($("body-kg").value);
   if (!(v >= 40 && v <= 150)){ $("body-kgToast").textContent = "Enter your weight in kg, like 76.4."; return; }
   set("weights", todayIso(), {date:todayIso(), kg:Math.round(v*10)/10, synced:false}); $("body-kg").value = ""; $("body-kgToast").textContent = "Saved " + (Math.round(v*10)/10) + " kg."; });
@@ -333,62 +338,102 @@ $("body-saveKg").addEventListener("click", () => { const v = parseFloat($("body-
 /* ---------- Money ---------- */
 function subsPart(m){ return ((m.burn || {}).parts || []).find(p => /subscri/i.test(p.t)); }
 function subsTotal(m){ const p = subsPart(m); if (!p) return 0; const s = (p.items || []).reduce((a,i) => a + num(i.v), 0); return s || num(p.v); }
+const BIG = ["Watches","Trips"];
+let moMonth = null;
 function renderMoney(){
   const m = get("meta","money") || {}, burn = (m.burn || {}).eur || 0, subs = subsTotal(m), cuts = get("meta","subCuts") || {};
   $("mo-updated").textContent = m.updated ? "Updated " + m.updated : "";
-  $("mo-tiles").innerHTML = '<div class="tile3"><div class="hd"><span>Spending</span></div><div><div class="n">' + eur(burn) + '</div><div class="small">a month, all in</div></div></div><button class="tile3" id="mo-subsJump"><div class="hd"><span>Subscriptions</span><span>›</span></div><div><div class="n">' + eur(subs) + '</div><div class="small">a month · ' + eur(subs*12) + ' a year</div></div></button>';
-  const inv = m.investedNow;
-  $("mo-goal").innerHTML = '<div class="lab"><span>Goal · invested by end of 2026</span><span>€25k</span></div><div class="focus-s' + (inv == null ? " warn" : "") + '">' + (inv == null ? "How much is in so far? (to fill)" : eur(inv) + " invested") + '</div><div class="meter"><i style="width:' + Math.min(100, Math.round((inv||0)/25000*100)) + '%"></i></div><div class="small">' + esc(m.goalNote || "") + '</div>';
-  const months = (m.months || []).slice(-8), hi = Math.max(1, ...months.map(x => x.v)), last = months[months.length-1];
-  const avg6 = months.slice(-6).reduce((a,x) => a + x.v, 0) / Math.max(1, Math.min(6, months.length));
-  const best = months.reduce((a,x) => x.v > a.v ? x : a, {v:0});
-  $("mo-income").innerHTML = '<div class="lab"><span>Coming in · from your FOCUS invoices</span><span>avg ' + eur(avg6) + '</span></div>' + (last ? '<div class="focus-s">' + esc(last.m) + ' ' + eur(last.v) + (last === best ? " · your best month" : "") + '</div>' : "") + '<div class="bars">' + months.map((x,i) => '<i' + (i === months.length-1 ? ' class="now"' : '') + ' style="height:' + Math.round(x.v/hi*100) + '%" title="' + esc(x.m + " " + eur(x.v)) + '"></i>').join("") + '</div><div class="bl">' + months.map(x => '<span>' + esc(x.m.slice(0,1)) + '</span>').join("") + '</div><div class="small" style="margin-top:6px">Updated from the invoice you send each month. Nothing to upload.</div>';
+  const sk = m.skillSpend || null;
+  $("mo-tiles").innerHTML =
+    '<div class="tile3"><div class="hd"><span>Saved</span></div><div><div class="n">' + esc(m.saved || "to fill") + '</div><div class="small">' + (m.emergencyFund ? "✓ emergency fund covered" : "emergency fund: to set") + '</div></div></div>' +
+    '<div class="tile3"><div class="hd"><span>Spending</span></div><div><div class="n">' + eur(burn) + '</div><div class="small">a month, all in</div></div></div>' +
+    '<button class="tile3" id="mo-subsJump"><div class="hd"><span>Subscriptions</span><span>›</span></div><div><div class="n">' + eur(subs) + '</div><div class="small">' + eur(subs*12) + ' a year</div></div></button>' +
+    '<div class="tile3"><div class="hd"><span>On your skills</span></div><div><div class="n">' + (sk ? eur(sk.v) : "…") + '</div><div class="small">' + esc(sk ? sk.note || ("this month") : "coaching, tools, books · /life fills it") + '</div></div></div>';
+  // Income: clickable bars + year to date
+  const months = (m.months || []).slice(-8), hi = Math.max(1, ...months.map(x => x.v));
+  const yr = String(new Date().getFullYear()), ytd = (m.months || []).filter(x => (x.y || inferYear(m.months, x)) === yr).reduce((a,x) => a + x.v, 0);
+  if (moMonth == null || moMonth >= months.length) moMonth = months.length - 1;
+  const sel = months[moMonth], best = months.reduce((a,x) => x.v > a.v ? x : a, {v:0});
+  $("mo-income").innerHTML = '<div class="lab"><span>Coming in · FOCUS invoices</span><span>' + yr + ' so far ' + eur(ytd) + '</span></div>' + (sel ? '<div class="focus-s">' + esc(sel.m) + ' · ' + eur(sel.v) + (sel === best ? " · best month" : "") + '</div>' : "") + '<div class="bars">' + months.map((x,i) => '<button class="bar1' + (i === moMonth ? " on" : "") + '" data-mo="' + i + '" style="height:' + Math.round(x.v/hi*100) + '%" aria-label="' + esc(x.m + " " + eur(x.v)) + '"></button>').join("") + '</div><div class="bl">' + months.map(x => '<span>' + esc(x.m.slice(0,1)) + '</span>').join("") + '</div><div class="small" style="margin-top:6px">Tap a bar. Updated from your invoice each month.</div>';
+  // Where it goes
   $("mo-burn").textContent = eur(burn);
   $("mo-parts").innerHTML = ((m.burn || {}).parts || []).map(p => { const isSubs = p === subsPart(m);
-    return '<details' + (isSubs ? ' id="mo-subs"' : '') + '><summary class="row"><span class="t">' + (isSubs ? "<b style='font-weight:500'>" + esc(p.t) + "</b>" : esc(p.t)) + '<span>' + esc(isSubs ? eur(subs*12) + " a year. Keep or cut each one." : (p.items || []).map(i => i.t).slice(0,3).join(", ")) + '</span></span><span class="' + (/\?|to fill|gap|not itemised/i.test(p.t + p.v) ? "warn" : "") + '">' + esc(p.v) + ' ›</span></summary>' +
+    return '<details' + (isSubs ? ' id="mo-subs"' : '') + '><summary class="row"><span class="t">' + esc(p.t) + '<span>' + esc(isSubs ? "Keep or cut each one" : (p.items || []).map(i => i.t).slice(0,3).join(", ")) + '</span></span><span class="' + (/not itemised/i.test(p.t) ? "warn" : "") + '">' + esc(p.v) + ' ›</span></summary>' +
       (p.items || []).map(i => { const id = slug(i.t), cut = !!cuts[id];
         return '<div class="row sub"><span class="t">' + esc(i.t) + (isSubs && num(i.v) ? '<span>' + eur(num(i.v)*12) + ' a year</span>' : "") + '</span><span class="rt">' + esc(i.v) + (isSubs && num(i.v) ? '<span class="kc"><button class="' + (cut ? "" : "sel") + '" data-keep="' + esc(id) + '">Keep</button><button class="' + (cut ? "sel cut" : "") + '" data-cut="' + esc(id) + '" data-cutname="' + esc(i.t) + '">Cut</button></span>' : "") + '</span></div>'; }).join("") + '</details>'; }).join("");
   const cutSum = (subsPart(m) ? subsPart(m).items : []).filter(i => cuts[slug(i.t)]).reduce((a,i) => a + num(i.v), 0);
-  if (cutSum) $("mo-toast").textContent = "Cutting saves " + eur(cutSum) + " a month, " + eur(cutSum*12) + " a year. Each cut is on your Admin list.";
-  const todo = m.todo || [];
-  $("mo-todoWrap").hidden = !todo.length;
-  $("mo-todo").innerHTML = todo.map((t,i) => '<button class="quest' + (t.done ? " done" : "") + '" data-mtodo="' + i + '"><span class="c">' + (t.done ? "✓" : "") + '</span><span class="qt">' + esc(t.t) + '</span></button>').join("");
-  $("mo-pots").innerHTML = (m.pots || []).map(p => '<div class="row"><span class="t">' + esc(p.t) + '</span><span>' + esc(p.v) + '</span></div>').join("") + '<div class="row"><span class="t">Rolex Sprite pot<span>total comes later</span></span><span class="small">later</span></div>';
+  $("mo-toast").textContent = cutSum ? "Cutting saves " + eur(cutSum) + " a month, " + eur(cutSum*12) + " a year. Each cut is on your Admin list." : "";
+  // Coming soon (planned costs)
+  const soon = m.soon || [];
+  $("mo-soon").hidden = !soon.length;
+  $("mo-soon").innerHTML = '<div class="lab"><span>Coming soon</span><span>planned</span></div>' + soon.map(x => '<div class="row"><span class="t">' + esc(x.t) + '<span>' + esc(x.when || "") + '</span></span><span>' + esc(x.v) + '</span></div>').join("");
+  // Ways to save
+  const sv = m.save || [];
+  $("mo-save").hidden = !sv.length;
+  $("mo-save").innerHTML = '<div class="lab"><span>Ways to save</span><span>' + esc(m.saveTotal || "") + '</span></div>' + sv.map(x => '<div class="srow"><b>' + esc(x.v) + '</b><span>' + esc(x.t) + '</span></div>').join("");
+  // Big wants
+  const big = all("wish").filter(w => BIG.includes(w.cat) && w.state === "want").sort((a,b) => (b.price||0) - (a.price||0));
+  $("mo-goals").hidden = !big.length;
+  $("mo-goals").innerHTML = '<div class="lab"><span>Saving for</span><span>big wants</span></div>' + big.map(w => { const pot = (m.pots2 || {})[w.id] || 0, pr = w.price || num(w.pr);
+    return '<div class="goal">' + (w.img ? '<img src="' + esc(w.img) + '" alt="">' : '<span class="gph"></span>') + '<span class="t"><b>' + esc(w.name) + '</b><span>' + esc(w.brand || w.cat) + (pr ? " · " + eur(pr) : "") + '</span><span class="meter sm"><i style="width:' + (pr ? Math.min(100, Math.round(pot/pr*100)) : 0) + '%"></i></span></span><span class="small">' + (pot ? eur(pot) : "pot opens") + '</span></div>'; }).join("");
 }
+function inferYear(list, x){ const i = list.indexOf(x), n = list.length, mi = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; let y = new Date().getFullYear(), last = mi.indexOf(list[n-1].m);
+  for (let k = n-1; k > i; k--){ const a = mi.indexOf(list[k].m), b = mi.indexOf(list[k-1].m); if (b > a) y--; } return String(y); }
 const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40);
 document.addEventListener("click", e => {
   if (e.target.closest("#mo-subsJump")){ const d = $("mo-subs"); if (d){ d.open = true; d.scrollIntoView({behavior:"smooth", block:"start"}); } return; }
   const c = e.target.closest("[data-cut]");
   if (c){ const cuts = Object.assign({}, get("meta","subCuts") || {}), id = c.dataset.cut; if (cuts[id]) return;
-    const aid = "cut-" + id; set("admin", aid, {t:"Cancel " + c.dataset.cutname.replace(/\s*\(.*\)$/,""), w:"Marked Cut in Money", state:"you", order:900, date:"", src:"app"});
+    const aid = "cut-" + id; set("admin", aid, {t:"Cancel " + c.dataset.cutname.replace(/\s*\(.*\)$/,""), w:"Marked Cut in Money", state:"you", order:-Date.now()/1e9, date:"", src:"app"});
     cuts[id] = aid; set("meta","subCuts", cuts); return; }
   const k = e.target.closest("[data-keep]");
   if (k){ const cuts = Object.assign({}, get("meta","subCuts") || {}), id = k.dataset.keep; if (!cuts[id]) return; del("admin", cuts[id]); delete cuts[id]; set("meta","subCuts", cuts); $("mo-toast").textContent = ""; return; }
-  const t = e.target.closest("[data-mtodo]");
-  if (t){ const m = get("meta","money") || {}, todo = (m.todo || []).map(x => Object.assign({}, x)), i = Number(t.dataset.mtodo); todo[i].done = !todo[i].done; update("meta","money",{todo}); }
+  const b = e.target.closest("[data-mo]"); if (b){ moMonth = Number(b.dataset.mo); render(); }
 });
 
 /* ---------- Think ---------- */
-let openThread = null;
+let openTheme = null, linkNote = null;
 function renderThink(){
-  const threads = all("threads"), thoughts = all("thoughts");
+  const meta = get("meta","think") || {}, threads = all("threads"), thoughts = all("thoughts");
   const liveT = threads.filter(t => t.state !== "landed" && t.state !== "letgo").sort((a,b) => (a.order||0) - (b.order||0));
   const count = t => thoughts.filter(x => x.thread === t.id).length + (Number(t.base)||0);
-  $("think-tLab").textContent = "Threads · " + liveT.length;
-  $("think-threads").innerHTML = liveT.map(t => { const n = count(t), notes = thoughts.filter(x => x.thread === t.id).sort((a,b) => String(b.at).localeCompare(String(a.at)));
-    return '<details class="th" data-id="' + esc(t.id) + '"' + (openThread === t.id ? " open" : "") + '><summary><span><span class="tt">' + esc(t.title) + '</span><span class="small" style="display:block">' + n + (n === 1 ? " note" : " notes") + '</span></span><span class="rb"><i style="width:' + Math.min(100, Math.round(n/(t.ripeAt||6)*100)) + '%"></i></span></summary>' + (t.q ? '<p class="serif" style="font-size:18px;color:var(--muted);margin:0 0 10px">' + esc(t.q) + '</p>' : "") + notes.map(x => '<div class="note">' + esc(x.t) + '<span>' + esc(fmt(x.at)) + '</span></div>').join("") + '</details>'; }).join("") || '<div class="empty">Your threads show here.</div>';
+  // Malmasson card
+  const mal = meta.malmasson;
+  $("think-mal").hidden = !mal;
+  if (mal) $("think-mal").innerHTML = '<div class="lab"><span>For Malmasson · ' + esc(mal.week || "this week") + '</span><span>you send it</span></div>' +
+    ['finished','loose'].filter(k => mal[k]).map(k => '<div class="msg"><div class="small">' + (k === "finished" ? "Ready to send" : "Fill in yourself") + '</div><p>' + esc(mal[k]) + '</p><button class="btn sm" data-copy="' + k + '">Copy</button></div>').join("");
+  // Observations
+  const obs = meta.observations || [];
+  $("think-obs").hidden = !obs.length;
+  $("think-obs").innerHTML = '<div class="lab"><span>Where you are</span><span>' + esc(meta.obsDate || "") + '</span></div>' + obs.map(o => '<div class="obs ' + esc(o.kind || "") + '"><span class="ok">' + esc(({bottleneck:"Bottleneck", pattern:"Pattern", next:"Next move"})[o.kind] || "Note") + '</span><div>' + esc(o.t) + '</div></div>').join("");
+  // Web
+  const W = 330, H = 300, cx = W/2, cy = H/2, R = 112, n = liveT.length || 1;
+  const pos = {}; liveT.forEach((t,i) => { const a = -Math.PI/2 + i/n*2*Math.PI; pos[t.id] = {x: cx + R*Math.cos(a), y: cy + R*Math.sin(a)}; });
+  const seen = new Set(), edges = []; liveT.forEach(t => (t.links || []).forEach(l => { const k = [t.id,l].sort().join("|"); if (pos[l] && !seen.has(k)){ seen.add(k); edges.push([t.id,l]); } }));
+  const hot = new Set(obs.flatMap(o => o.themes || []));
+  $("think-web").innerHTML = '<svg viewBox="-10 -20 ' + (W+20) + ' ' + (H+36) + '" width="100%" class="web" role="img" aria-label="Your themes and how they connect">' +
+    liveT.map(t => '<line x1="' + cx + '" y1="' + cy + '" x2="' + pos[t.id].x.toFixed(1) + '" y2="' + pos[t.id].y.toFixed(1) + '" class="spoke"/>').join("") +
+    edges.map(([a,b]) => '<line x1="' + pos[a].x.toFixed(1) + '" y1="' + pos[a].y.toFixed(1) + '" x2="' + pos[b].x.toFixed(1) + '" y2="' + pos[b].y.toFixed(1) + '" class="link"/>').join("") +
+    '<circle cx="' + cx + '" cy="' + cy + '" r="26" class="me"/><text x="' + cx + '" y="' + (cy+5) + '" class="metx">You</text>' +
+    liveT.map(t => { const c = count(t), r = 9 + Math.min(14, c*1.6), p2 = pos[t.id], lx = p2.x, ly = p2.y + (p2.y < cy ? -r - 7 : r + 15);
+      return '<g class="node' + (openTheme === t.id ? " on" : "") + (hot.has(t.id) ? " hot" : "") + '" data-theme="' + esc(t.id) + '"><circle cx="' + p2.x.toFixed(1) + '" cy="' + p2.y.toFixed(1) + '" r="' + r.toFixed(1) + '"/><text x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '">' + esc(t.title.length > 16 ? t.title.slice(0,15) + "…" : t.title) + '</text></g>'; }).join("") + '</svg>';
+  const ot = liveT.find(t => t.id === openTheme);
+  $("think-open").innerHTML = ot ? '<div class="theme"><div class="focus-s">' + esc(ot.title) + '</div>' + (ot.q ? '<div class="small" style="margin:4px 0 8px">' + esc(ot.q) + '</div>' : "") + ((ot.links || []).length ? '<div class="small">Linked to: ' + ot.links.map(l => esc((threads.find(x => x.id === l) || {}).title || l)).join(", ") + '</div>' : "") + thoughts.filter(x => x.thread === ot.id).sort((a,b) => String(b.at).localeCompare(String(a.at))).slice(0,8).map(x => '<div class="note">' + esc(x.t) + '<span>' + esc(fmt(x.at)) + '</span></div>').join("") + '</div>' : '<div class="small">Bigger dots have more notes. Orange ones are where your bottlenecks sit.</div>';
+  // Loose notes: link by tapping a theme chip
   const loose = thoughts.filter(x => !x.thread).sort((a,b) => String(b.at).localeCompare(String(a.at)));
   $("think-looseWrap").hidden = !loose.length;
-  $("think-loose").innerHTML = loose.map(x => '<div class="note">' + esc(x.t) + '<span>' + esc(fmt(x.at)) + ' · filed on Saturday</span></div>').join("");
+  $("think-loose").innerHTML = loose.map(x => '<div class="note">' + esc(x.t) + '<span>' + esc(fmt(x.at)) + '</span><div class="chips scroll" style="margin-top:6px">' + liveT.map(t => '<button class="chip sm" data-file="' + esc(x.id) + '" data-to="' + esc(t.id) + '">' + esc(t.title) + '</button>').join("") + '</div></div>').join("");
   const side = (get("meta","side") || {}).projects || [];
   $("think-sLab").textContent = "Side projects · " + side.filter(p => p.on).length + " on";
   $("think-side").innerHTML = side.map(p => '<div class="row"' + (p.on ? "" : ' style="opacity:.55"') + '><span class="t"><b style="font-weight:500">' + esc(p.name) + '</b><span>Next: ' + esc(p.next || "") + '</span></span><span class="small">' + esc(p.progress ? p.progress.now + " / " + p.progress.goal : (p.status || "")) + '</span></div>').join("") || '<div class="empty">None yet.</div>';
-  const landed = threads.filter(t => t.state === "landed" || t.state === "letgo");
-  $("think-landed").innerHTML = landed.map(t => '<div class="row" style="display:block"><div class="pill">' + esc((t.landing||{}).kind || "let go") + '</div><b style="font-weight:500">' + esc(t.title) + '</b><div>' + esc((t.landing||{}).t || "") + '</div></div>').join("") || '<div class="empty">Nothing landed yet.</div>';
 }
 $("think-save").addEventListener("click", () => { if (capture($("think-text").value, $("think-toast"))) $("think-text").value = ""; });
 $("think-text").addEventListener("keydown", e => { if (e.key === "Enter") $("think-save").click(); });
-document.addEventListener("toggle", e => { const d = e.target; if (d && d.matches && d.matches(".th")) openThread = d.open ? d.dataset.id : (openThread === d.dataset.id ? null : openThread); }, true);
+document.addEventListener("click", e => {
+  const g = e.target.closest("[data-theme]"); if (g){ openTheme = openTheme === g.dataset.theme ? null : g.dataset.theme; render(); return; }
+  const f = e.target.closest("[data-file]"); if (f){ update("thoughts", f.dataset.file, {thread:f.dataset.to, filedBy:"you"}); return; }
+  const c = e.target.closest("[data-copy]"); if (c){ const mal = (get("meta","think") || {}).malmasson || {}; const txt = mal[c.dataset.copy] || ""; (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => { c.textContent = "Copied ✓"; }).catch(() => { c.textContent = "Hold the text to copy"; }); }
+});
 
 /* ---------- People ---------- */
 const openGifts = () => all("giftIdeas").filter(g => !g.given && !g.bought).sort((a,b) => String(b.at).localeCompare(String(a.at)));
@@ -398,8 +443,9 @@ function giftRow(g){
 }
 function people(){
   const m = new Map(), P = get("meta","people") || {};
-  (P.people || []).forEach(p => m.set(p.name.toLowerCase(), Object.assign({}, p)));
-  all("birthdays").forEach(a => { if (!m.has(a.name.toLowerCase())) m.set(a.name.toLowerCase(), {name:a.name, m:a.m, d:a.d, fresh:!a.synced}); });
+  const hid = new Set((P.hidden || []).map(x => String(x).toLowerCase()));
+  (P.people || []).forEach(p => { if (!hid.has(p.name.toLowerCase())) m.set(p.name.toLowerCase(), Object.assign({}, p)); });
+  all("birthdays").forEach(a => { if (!m.has(a.name.toLowerCase()) && !hid.has(a.name.toLowerCase())) m.set(a.name.toLowerCase(), {name:a.name, m:a.m, d:a.d, fresh:!a.synced}); });
   const t = new Date(); t.setHours(0,0,0,0);
   return [...m.values()].map(p => { let n = new Date(t.getFullYear(), p.m-1, p.d); if (n < t) n = new Date(t.getFullYear()+1, p.m-1, p.d); return Object.assign(p, {next:n, days:Math.round((n - t)/86400000)}); }).sort((a,b) => a.days - b.days);
 }
@@ -418,17 +464,26 @@ function renderPeople(){
   $("gifts-doneWrap").hidden = !done.length;
   $("gifts-names").innerHTML = ps.map(p => '<option value="' + esc(p.name) + '">').join("");
   const dt = get("meta","dating") || {}, h = home();
-  $("pe-dating").innerHTML = '<div class="lab"><span>Dating</span><span>' + esc(h.boss ? "boss: " + h.boss.name : "") + '</span></div><div class="focus-s">' + esc(dt.title || "The life you're building room for.") + '</div>' + ((dt.rules || []).length ? '<div class="small" style="margin-top:6px">' + esc(dt.rules[Math.floor(Date.now()/86400000) % dt.rules.length]) + '</div>' : "");
+  const mon2 = mondayIso(), op = all("wins").filter(w => (w.key === "opener" || w.key === "date" || w.key === "event") && String(w.date) >= mon2);
+  $("pe-dating").innerHTML = '<div class="lab"><span>Dating</span><span>' + esc(h.boss ? "Boss: " + h.boss.name : "") + '</span></div><div class="focus-s">' + esc(dt.title || "The life you're building room for.") + '</div>' +
+    '<div class="dstats"><span><b>' + op.filter(w => w.key === "opener").length + '</b>openers this week</span><span><b>' + op.filter(w => w.key === "event").length + '</b>events</span><span><b>' + op.filter(w => w.key === "date").length + '</b>dates</span></div>' +
+    '<div class="chips" style="margin:10px 0"><button class="chip sm" data-dw="opener">Talked to someone new <span>+20</span></button><button class="chip sm" data-dw="date">Date <span>+100</span></button></div>' +
+    ((dt.where || []).length ? '<div class="lab" style="margin:8px 0 4px">Where this week</div>' + dt.where.map(x => '<div class="row"><span class="t">' + esc(x.t) + '<span>' + esc(x.w || "") + '</span></span></div>').join("") : "") +
+    ((dt.rules || []).length ? '<details style="margin-top:8px"><summary class="lab" style="margin:0"><span>Your rules</span><span>▾</span></summary>' + dt.rules.map(r => '<div class="small" style="padding:4px 0">· ' + esc(r) + '</div>').join("") + ((dt.why || []).length ? '<div class="lab" style="margin:10px 0 4px">Why</div>' + dt.why.map(r => '<div class="small" style="padding:4px 0">' + esc(r) + '</div>').join("") : "") + '</details>' : "");
   const ws = all("wish"), want = ws.filter(w => w.state === "want").length, bought = ws.filter(w => w.state === "bought").length;
   $("pe-wish").innerHTML = '<div class="hd"><span>Wishlist</span><span>›</span></div><div><div class="n">' + want + ' wanted</div><div class="small">' + ws.length + ' things · ' + bought + ' bought</div></div>';
   let last = -1;
   $("bday-list").innerHTML = ps.map(p => { const mo = p.next.getMonth(), head = mo !== last ? '<div class="mon">' + MONTHS[mo] + '</div>' : ""; last = mo;
-    return head + '<div class="bday' + (p.days <= 14 && !p.gentle ? " soon" : "") + '"><span class="d">' + p.d + '</span><span>' + esc(p.name) + '</span><span class="in">' + esc(inText(p.days)) + '</span></div>'; }).join("");
+    return head + '<div class="bday' + (p.days <= 14 && !p.gentle ? " soon" : "") + '"><span class="d">' + p.d + '</span><span>' + esc(p.name) + '</span><span class="in">' + esc(inText(p.days)) + '<button class="x" data-bdel="' + esc(p.name) + '" aria-label="Remove ' + esc(p.name) + '">×</button></span></div>'; }).join("");
 }
 $("bday-day").innerHTML = '<option value="">Day</option>' + [...Array(31)].map((_,i) => "<option>" + (i+1) + "</option>").join("");
 $("bday-month").innerHTML = '<option value="">Month</option>' + MONTHS.map((m,i) => '<option value="' + (i+1) + '">' + m.slice(0,3) + "</option>").join("");
-$("pe-called").addEventListener("click", () => logWin({key:"call", label:"Called someone I love", xp:10}, $("pe-callToast")));
-$("pe-texted").addEventListener("click", () => logWin({key:"text", label:"Texted someone I love", xp:5}, $("pe-callToast")));
+document.addEventListener("click", e => {
+  const d = e.target.closest("[data-bdel]"); if (d){ const P = get("meta","people") || {}, hidden = (P.hidden || []).concat([d.dataset.bdel]); update("meta","people",{hidden}); const b = all("birthdays").find(x => x.name === d.dataset.bdel); toast($("bday-toast"), "Removed " + esc(d.dataset.bdel) + ".", () => update("meta","people",{hidden:hidden.filter(x => x !== d.dataset.bdel)})); return; }
+  const dw = e.target.closest("[data-dw]"); if (dw){ logWin(dw.dataset.dw === "date" ? {key:"date", label:"Date", xp:100} : {key:"opener", label:"Talked to someone new", xp:20}, $("pe-callToast"), dw); }
+});
+$("pe-called").addEventListener("click", () => logWin({key:"call", label:"Called someone I love", xp:10}, $("pe-callToast"), $("pe-called")));
+$("pe-texted").addEventListener("click", () => logWin({key:"text", label:"Texted someone I love", xp:5}, $("pe-callToast"), $("pe-texted")));
 $("gifts-form").addEventListener("submit", e => { e.preventDefault();
   const who = $("gifts-who").value.trim(), t = $("gifts-idea").value.trim();
   if (!who || !t){ $("gifts-toast").textContent = "Add who it's for and the idea."; return; }
@@ -446,7 +501,7 @@ $("bday-form").addEventListener("submit", e => { e.preventDefault();
 /* ---------- Wishlist ---------- */
 let wiCat = "Wanted";
 function renderWish(){
-  const ws = all("wish").sort((a,b) => (a.order ?? 999) - (b.order ?? 999));
+  const ws = all("wish").filter(w => !BIG.includes(w.cat)).sort((a,b) => (a.order ?? 999) - (b.order ?? 999));
   const cats = ["Wanted","Drops"].concat([...new Set(ws.map(w => w.cat).filter(c => c && c !== "Drops"))]).concat(["Bought","Passed"]);
   $("wi-count").textContent = ws.filter(w => w.state === "bought").length + " bought";
   $("wi-cats").innerHTML = cats.map(c => '<button class="chip sm' + (c === wiCat ? " on" : "") + '" data-wcat="' + esc(c) + '">' + esc(c) + '</button>').join("");
@@ -466,22 +521,28 @@ $("wi-form").addEventListener("submit", e => { e.preventDefault(); const t = $("
 
 /* ---------- Admin ---------- */
 function renderAdmin(){
-  const steps = all("admin").sort((a,b) => (a.order||0) - (b.order||0)), done = steps.filter(s => s.state === "done");
-  $("admin-count").textContent = steps.length ? done.length + " of " + steps.length + " done" : "";
+  const steps = all("admin").sort((a,b) => (a.order||0) - (b.order||0)), done = steps.filter(s => s.state === "done").sort((a,b) => String(b.doneAt||"").localeCompare(String(a.doneAt||"")));
+  const mstart = todayIso().slice(0,8) + "01", won = done.filter(s => String(s.doneAt||"") >= mstart).length;
+  $("admin-count").textContent = won ? won + " won this month" : (steps.length ? done.length + " of " + steps.length + " done" : "");
   $("admin-bar").style.width = steps.length ? Math.round(done.length/steps.length*100) + "%" : "0%";
   const nx = steps.find(s => s.state === "you") || steps.find(s => s.state === "due");
   $("admin-next").innerHTML = nx ? '<div class="small">Next for you · ' + esc(nx.date || "") + '</div><div class="serif" style="font-size:24px;line-height:1.2">' + esc(nx.t) + '</div><div class="small">' + esc(nx.w || "") + '</div>' : '<div class="serif" style="font-size:24px">Nothing on you right now</div>';
-  const row = s => '<div class="step' + (s.state === "done" ? " done" : "") + '"><button class="tick' + (s.state === "done" ? " on" : "") + '" data-tick="' + esc(s.id) + '" aria-label="' + (s.state === "done" ? "Mark not done: " : "Mark done: ") + esc(s.t) + '">' + (s.state === "done" ? "✓" : "") + '</button><span class="t"><b style="font-weight:500">' + esc(s.t) + '</b><span>' + esc([s.date, s.w].filter(Boolean).join(" · ")) + '</span>' + (s.state === "you" || s.state === "due" ? '<span class="pill you">On you</span>' : "") + '</span><button class="x" data-adel="' + esc(s.id) + '" aria-label="Delete ' + esc(s.t) + '">×</button></div>';
+  const row = s => '<div class="step' + (s.state === "done" ? " done" : "") + '"><button class="tick' + (s.state === "done" ? " on" : "") + '" data-tick="' + esc(s.id) + '" aria-label="' + (s.state === "done" ? "Mark not done: " : "Mark done: ") + esc(s.t) + '">' + (s.state === "done" ? "✓" : "") + '</button><span class="t"><b style="font-weight:500" data-aedit="' + esc(s.id) + '">' + esc(s.t) + '</b><span>' + esc([s.date, s.w].filter(Boolean).join(" · ")) + '</span>' + (s.state === "you" || s.state === "due" ? '<span class="pill you">On you</span>' : "") + '</span><button class="x" data-adel="' + esc(s.id) + '" aria-label="Delete ' + esc(s.t) + '">×</button></div>';
   $("admin-road").innerHTML = steps.filter(s => s.state !== "done").map(row).join("") || '<div class="empty">All clear.</div>';
   $("admin-done").innerHTML = done.map(row).join("");
 }
 document.addEventListener("click", e => {
   const x = e.target.closest("[data-adel]"); if (x){ const id = x.dataset.adel, keep = get("admin", id); del("admin", id); toast($("admin-toast"), "Deleted: " + esc(keep ? keep.t : ""), () => set("admin", id, keep)); return; }
   const t = e.target.closest("[data-tick]"); if (!t) return; const s = get("admin", t.dataset.tick); if (!s) return;
-  if (s.state === "done") update("admin", t.dataset.tick, {state:s.prev || "you", tickedByYou:false});
-  else update("admin", t.dataset.tick, {prev:s.state, state:"done", tickedByYou:true, doneAt:todayIso()}); });
+  const wid = "admin-" + t.dataset.tick;
+  if (s.state === "done"){ update("admin", t.dataset.tick, {state:s.prev || "you", tickedByYou:false}); if (get("wins", wid)) del("wins", wid); }
+  else { update("admin", t.dataset.tick, {prev:s.state, state:"done", tickedByYou:true, doneAt:todayIso()}); set("wins", wid, {key:"admin", label:"Admin · " + s.t, xp:10, date:todayIso(), at:nowIso(), synced:false}); pop(10, t); } });
+document.addEventListener("click", e => { const a = e.target.closest("[data-aedit]"); if (!a || a.querySelector("input")) return; const id = a.dataset.aedit, s = get("admin", id); if (!s) return;
+  a.innerHTML = '<input class="field" value="' + esc(s.t) + '" style="padding:6px 10px">'; const i = a.querySelector("input"); i.focus(); i.select();
+  const done = () => { const v = i.value.trim(); if (v && v !== s.t) update("admin", id, {t:v}); else render(); };
+  i.addEventListener("blur", done); i.addEventListener("keydown", ev => { if (ev.key === "Enter") i.blur(); if (ev.key === "Escape"){ i.value = s.t; i.blur(); } }); });
 $("admin-form").addEventListener("submit", e => { e.preventDefault(); const t = $("admin-text").value.trim(); if (!t) return;
-  const id = add("admin", {t, w:"Added in the app", state:"you", order:800, date:"", src:"app"}); $("admin-text").value = "";
+  const id = add("admin", {t, w:"Added in the app", state:"you", order:-Date.now()/1e9, date:"", src:"app"}); $("admin-text").value = "";
   toast($("admin-toast"), "Added.", () => del("admin", id)); });
 
 /* ---------- Render ---------- */
