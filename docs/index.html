@@ -14,7 +14,7 @@
 <link rel="icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="app.css?v=5">
 </head>
 <body>
 <div class="sync" id="sync" hidden></div>
@@ -32,111 +32,170 @@
   </section>
 </main>
 
+<!-- HOME -->
 <main class="view" id="v-home" hidden>
-  <div class="top"><span class="brand">Life OS</span><span class="small" id="home-updated"></span></div>
+  <div class="top"><span class="brand">Life OS</span><span class="small" id="home-date"></span></div>
+  <section class="ringwrap">
+    <button class="ring" id="home-ring" aria-label="Your level"><div><b class="xp" id="home-xp">0</b><span class="small" id="home-lvl">Loading</span></div></button>
+    <details class="ringmore" id="home-stats"><summary class="small">Level details ▾</summary>
+      <div class="stats3"><div><span class="small">Next level</span><b id="home-tonext"></b></div><div><span class="small">This week</span><b id="home-pace"></b></div><div><span class="small">Best week</span><b id="home-record"></b></div></div>
+    </details>
+  </section>
+  <a class="panel evening" id="home-tonight" href="#tonight"></a>
+  <section class="panel"><div class="lab" id="home-questLab">This week's quests</div><div class="focus-s" id="home-focus"></div><div id="home-quests"></div><div class="toast" id="home-questToast" aria-live="polite"></div></section>
+  <section class="tiles" id="home-tiles"></section>
+  <div class="toast" id="home-tileToast" aria-live="polite" style="margin:-4px 6px 0"></div>
+  <section class="panel">
+    <div class="lab"><span>Log a win</span><button class="link" id="home-editWins">Edit</button></div>
+    <div class="chips" id="home-wins"></div>
+    <details style="margin-top:12px"><summary class="lab" style="margin:0"><span>More wins, picked for you</span><span>▾</span></summary><div class="chips" id="home-more" style="margin-top:8px"></div><div class="small" style="margin-top:8px">Tap + to pin one to your main buttons.</div></details>
+    <div class="toast" id="home-winToast" aria-live="polite"></div>
+  </section>
   <section class="panel">
     <div class="cap"><input class="field" id="home-cap" placeholder="What's on your mind?" aria-label="New thought" enterkeyhint="send"><button class="btn solid" id="home-capGo">Save</button></div>
     <div class="toast" id="home-capToast" aria-live="polite"></div>
   </section>
   <section class="panel">
-    <div class="xp" id="home-xp">0</div>
-    <div class="small" id="home-lvl" style="margin-top:8px">Loading your score</div>
-    <div class="bar"><i id="home-bar" style="width:0%"></i></div>
-    <div class="stats3"><div><span class="small">Next level</span><b id="home-tonext"></b></div><div><span class="small">This week</span><b id="home-pace"></b></div><div><span class="small">Best week</span><b id="home-record"></b></div></div>
-  </section>
-  <section class="panel"><div class="lab">This week's one goal</div><div class="focus" id="home-focus">Set on Saturday.</div></section>
-  <section class="panel"><div class="lab" id="home-questLab">This week's quests</div><div id="home-quests"></div><div class="toast" id="home-questToast" aria-live="polite"></div></section>
-  <section class="panel"><div class="lab">Log a win</div><div class="chips" id="home-wins"></div><div class="toast" id="home-winToast" aria-live="polite"></div></section>
-  <section class="panel"><div class="lab"><span id="home-giftLab">Gifts</span><a href="#gifts">Add an idea →</a></div><div id="home-gifts"></div><div class="toast" id="home-giftToast" aria-live="polite"></div></section>
-  <section class="panel">
-    <h2 class="h">Offline</h2><div class="small" style="margin:4px 0 12px">How you recharge</div>
+    <div class="lab"><span>Offline · how you recharge</span><span>+10 each</span></div>
     <div class="rh" id="home-rh"></div><div class="strip" id="home-strip"></div><div class="toast" id="home-offToast" aria-live="polite"></div>
   </section>
-  <section class="panel"><div class="lab">More rooms</div><div class="rooms" id="home-rooms"></div></section>
-  <section class="panel"><div class="lab" id="home-bossLab">This month</div><div class="focus" id="home-boss"></div></section>
-  <section class="panel"><div class="lab">Badges</div><div class="badges" id="home-badges"></div></section>
-  <section class="panel"><div class="lab">Goals</div><div id="home-north"></div></section>
-  <section class="panel"><div class="lab">The fuel</div><div class="quote" id="home-quote"></div></section>
-  <section class="panel"><div class="lab">Lessons</div><div id="home-lessons"></div></section>
-  <section class="panel"><details><summary class="lab" style="margin:0">Recent wins ▾</summary><div id="home-recent" style="margin-top:8px"></div></details></section>
+  <section class="panel"><details><summary class="lab" style="margin:0"><span id="home-bossLab">Boss and badges</span><span>▾</span></summary>
+    <div class="focus-s" id="home-boss" style="margin:10px 0"></div>
+    <div class="badges" id="home-badges"></div>
+    <div class="lab" style="margin-top:14px">Recent wins</div><div id="home-recent"></div>
+  </details></section>
 </main>
 
-<main class="view" id="v-think" hidden>
-  <div class="top"><span class="brand">Think</span></div>
-  <section class="panel">
-    <div class="small" id="think-why" style="margin-bottom:10px"></div>
-    <textarea class="field" id="think-text" placeholder="What's on your mind?" aria-label="New thought"></textarea>
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px"><span class="small">Saved now, filed on Saturday.</span><button class="btn solid" id="think-save">Save</button></div>
-    <div class="toast" id="think-toast" aria-live="polite"></div>
-  </section>
-  <section class="panel" id="think-looseWrap" hidden><div class="lab">Waiting to be filed</div><div id="think-loose"></div></section>
-  <section class="panel"><div class="lab">Threads</div><div id="think-threads"></div></section>
-  <section class="panel"><div class="lab">Landed</div><div id="think-landed"></div></section>
+<!-- TONIGHT -->
+<main class="view" id="v-tonight" hidden>
+  <div class="top"><span><a class="back" href="#home">‹ Home</a><span class="brand">Tonight</span></span><span class="small" id="tn-date"></span></div>
+  <section class="panel"><div class="lab"><span>30 days, non-negotiable</span><span id="tn-day"></span></div><div class="dots30" id="tn-dots"></div><div class="small" style="margin-top:10px">Rough night? 3 wins and 3 thank-yous still count.</div></section>
+  <section class="panel"><div class="lab"><span>What were today's wins, no matter how small?</span><span id="tn-wn"></span></div><div id="tn-wins"></div></section>
+  <section class="panel"><div class="lab"><span>What am I grateful for today?</span><span id="tn-gn"></span></div><div id="tn-grat"></div></section>
+  <button class="btn solid big" id="tn-done">Done for today · +20</button>
+  <div class="toast" id="tn-toast" aria-live="polite"></div>
+  <section class="panel"><div class="lab">Earlier</div><div id="tn-past"></div></section>
 </main>
 
-<main class="view" id="v-gifts" hidden>
-  <div class="top"><span class="brand">Gifts</span></div>
-  <section class="panel" id="gifts-next"></section>
-  <section class="panel">
-    <div class="lab">Save a gift idea the moment you hear it</div>
-    <form class="g" id="gifts-form" autocomplete="off">
-      <input class="field full" id="gifts-who" list="gifts-names" placeholder="For who" aria-label="For who" enterkeyhint="next">
-      <input class="field" id="gifts-idea" placeholder="The idea, or what they said" aria-label="Gift idea" enterkeyhint="done">
-      <button class="btn solid" type="submit">Save</button>
-    </form>
-    <datalist id="gifts-names"></datalist>
-    <div class="toast" id="gifts-toast" aria-live="polite"></div>
-  </section>
-  <section class="panel"><div class="lab" id="gifts-openLab">To get</div><div id="gifts-open"></div><div class="toast" id="gifts-listToast" aria-live="polite"></div></section>
-  <section class="panel" id="gifts-doneWrap"><div class="lab">Done</div><div id="gifts-done"></div></section>
-  <section class="panel">
-    <div class="lab">Add a birthday</div>
-    <form class="g" id="bday-form" autocomplete="off" style="grid-template-columns:minmax(0,1fr) 70px 86px">
-      <input class="field" id="bday-name" placeholder="Name" aria-label="Name">
-      <select class="field" id="bday-day" aria-label="Day"></select>
-      <select class="field" id="bday-month" aria-label="Month"></select>
-      <button class="btn solid full" type="submit">Save birthday</button>
-    </form>
-    <div class="toast" id="bday-toast" aria-live="polite"></div>
-  </section>
-  <section class="panel"><div class="lab">Birthdays</div><div id="bday-list"></div></section>
-</main>
-
+<!-- HEALTH -->
 <main class="view" id="v-body" hidden>
   <div class="top"><span class="brand">Health</span><span class="small" id="body-updated"></span></div>
   <section class="panel"><div class="lab" id="body-weekLab">This week</div><div class="week7" id="body-week"></div></section>
   <section class="panel">
     <div class="lab">Pick today's session</div><div class="grid3" id="body-picks"></div>
     <div id="body-ex" style="margin-top:12px"></div>
+    <div class="small" style="margin-top:8px">Type the kg and reps you did. Beat last time by one rep or 2.5 kg: it turns green.</div>
     <div class="grid2" style="margin-top:12px"><button class="btn solid" id="body-finish">Finish session · +10</button><button class="btn" id="body-padel">Played padel · +10</button></div>
     <div class="toast" id="body-toast" aria-live="polite"></div>
   </section>
+  <section class="panel"><div class="lab"><span>Getting stronger</span><span id="body-strN"></span></div><div id="body-chart"></div><div class="chips" id="body-strPick" style="margin-top:8px"></div></section>
   <section class="panel"><div class="lab"><span>Fuel today</span><span id="body-fuelN"></span></div><div class="grid2" id="body-fuel"></div></section>
   <section class="panel">
-    <div class="lab">Saturday weigh-in</div>
+    <div class="lab"><span>Saturday weight</span><span id="body-kgNow"></span></div>
+    <div id="body-wchart"></div>
+    <div class="small" style="margin:8px 0 10px">Saturday morning, before food. It saves to your weight log and draws the line here. /life reads it.</div>
     <div class="cap"><input class="field" id="body-kg" type="number" step="0.1" min="40" max="150" inputmode="decimal" placeholder="kg" aria-label="Weight in kg"><button class="btn solid" id="body-saveKg">Save</button></div>
     <div class="toast" id="body-kgToast" aria-live="polite"></div>
   </section>
-  <section class="panel"><div class="lab">Rules</div><div id="body-rules"></div></section>
+  <section class="panel"><details><summary class="lab" style="margin:0"><span>Rules</span><span>▾</span></summary><div id="body-rules" style="margin-top:8px"></div></details></section>
 </main>
 
+<!-- MONEY -->
+<main class="view" id="v-money" hidden>
+  <div class="top"><span class="brand">Money</span><span class="small" id="mo-updated"></span></div>
+  <section class="tiles" id="mo-tiles"></section>
+  <section class="panel" id="mo-goal"></section>
+  <section class="panel" id="mo-income"></section>
+  <section class="panel"><div class="lab"><span>Where it goes · each month</span><span id="mo-burn"></span></div><div id="mo-parts"></div><div class="toast" id="mo-toast" aria-live="polite"></div></section>
+  <section class="panel" id="mo-todoWrap"><div class="lab">To sort at the money session</div><div id="mo-todo"></div></section>
+  <section class="panel"><div class="lab">Pots</div><div id="mo-pots"></div></section>
+</main>
+
+<!-- THINK -->
+<main class="view" id="v-think" hidden>
+  <div class="top"><span class="brand">Think</span></div>
+  <section class="panel">
+    <div class="cap"><input class="field" id="think-text" placeholder="What's on your mind?" aria-label="New thought" enterkeyhint="send"><button class="btn solid" id="think-save">Save</button></div>
+    <div class="toast" id="think-toast" aria-live="polite"></div>
+  </section>
+  <section class="panel" id="think-looseWrap" hidden><div class="lab">Waiting to be filed</div><div id="think-loose"></div></section>
+  <section class="panel"><details><summary class="lab" style="margin:0"><span id="think-tLab">Threads</span><span>▾</span></summary><div id="think-threads" style="margin-top:6px"></div></details></section>
+  <section class="panel"><details><summary class="lab" style="margin:0"><span id="think-sLab">Side projects</span><span>▾</span></summary><div id="think-side" style="margin-top:6px"></div></details></section>
+  <section class="panel"><details><summary class="lab" style="margin:0"><span>Landed</span><span>▾</span></summary><div id="think-landed" style="margin-top:6px"></div></details></section>
+</main>
+
+<!-- PEOPLE -->
+<main class="view" id="v-people" hidden>
+  <div class="top"><span class="brand">People</span></div>
+  <section class="panel"><div class="lab">Coming up</div><div id="pe-next"></div></section>
+  <section class="panel callcard"><div><div class="focus-s">Call or text someone you love</div><div class="small" id="pe-callLast"></div></div><div class="stack"><button class="btn solid sm" id="pe-called">Called +10</button><button class="btn sm" id="pe-texted">Texted +5</button></div></section>
+  <div class="toast" id="pe-callToast" aria-live="polite" style="margin:-4px 6px 0"></div>
+  <section class="panel">
+    <div class="lab"><span id="gifts-openLab">Gifts to get</span><span>Bought = +20</span></div>
+    <div id="gifts-open"></div>
+    <form class="g" id="gifts-form" autocomplete="off" style="margin-top:10px">
+      <input class="field full" id="gifts-who" list="gifts-names" placeholder="For who" aria-label="For who" enterkeyhint="next">
+      <input class="field" id="gifts-idea" placeholder="The idea, or what they said" aria-label="Gift idea" enterkeyhint="done">
+      <button class="btn solid" type="submit">Save</button>
+    </form>
+    <datalist id="gifts-names"></datalist>
+    <div class="toast" id="gifts-toast" aria-live="polite"></div>
+    <details id="gifts-doneWrap" style="margin-top:6px"><summary class="lab" style="margin:0"><span>Done</span><span>▾</span></summary><div id="gifts-done"></div></details>
+  </section>
+  <section class="panel" id="pe-dating"></section>
+  <a class="tile2" href="#wish" id="pe-wish"></a>
+  <section class="panel"><details><summary class="lab" style="margin:0"><span>Birthdays</span><span>▾</span></summary>
+    <form class="g" id="bday-form" autocomplete="off" style="grid-template-columns:minmax(0,1fr) 70px 86px;margin-top:10px">
+      <input class="field" id="bday-name" placeholder="Name" aria-label="Name">
+      <select class="field" id="bday-day" aria-label="Day"></select>
+      <select class="field" id="bday-month" aria-label="Month"></select>
+      <button class="btn solid full" type="submit">Save birthday</button>
+    </form>
+    <div class="toast" id="bday-toast" aria-live="polite"></div>
+    <div id="bday-list"></div>
+  </details></section>
+</main>
+
+<!-- WISHLIST -->
+<main class="view" id="v-wish" hidden>
+  <div class="top"><span><a class="back" href="#people">‹ People</a><span class="brand">Wishlist</span></span><span class="small" id="wi-count"></span></div>
+  <section class="panel">
+    <form class="g" id="wi-form" autocomplete="off"><input class="field" id="wi-text" placeholder="Paste a link, or just write it" aria-label="New wish"><button class="btn solid" type="submit">Add</button></form>
+    <div class="toast" id="wi-toast" aria-live="polite"></div>
+  </section>
+  <div class="chips scroll" id="wi-cats"></div>
+  <div id="wi-list" style="display:flex;flex-direction:column;gap:12px"></div>
+</main>
+
+<!-- ADMIN -->
 <main class="view" id="v-admin" hidden>
   <div class="top"><span class="brand">Admin</span><span class="small" id="admin-count"></span></div>
   <section class="panel"><div class="bar" style="margin:0 0 10px"><i id="admin-bar"></i></div><div class="next" id="admin-next"></div></section>
-  <section class="panel"><div class="lab">To do</div><div id="admin-road"></div><div class="toast" id="admin-toast" aria-live="polite"></div></section>
+  <section class="panel"><div class="lab"><span>To do</span><span>× deletes</span></div><div id="admin-road"></div>
+    <form class="g" id="admin-form" autocomplete="off" style="margin-top:10px"><input class="field" id="admin-text" placeholder="Add an admin task" aria-label="New admin task"><button class="btn solid" type="submit">Add</button></form>
+    <div class="toast" id="admin-toast" aria-live="polite"></div></section>
   <section class="panel"><details><summary class="lab" style="margin:0">Done ▾</summary><div id="admin-done" style="margin-top:8px"></div></details></section>
 </main>
 
+<!-- Edit win buttons -->
+<div class="sheet" id="sheet" hidden><div class="sheetin">
+  <div class="lab"><span class="focus-s" style="color:var(--fg)">Your win buttons</span><button class="link" id="sheet-done">Done</button></div>
+  <div class="small" style="margin-bottom:12px">Rename, change the XP, remove or add. This order is the order on Home.</div>
+  <div id="sheet-rows"></div>
+  <button class="btn" id="sheet-add" style="width:100%">+ Add a win</button>
+</div></div>
+
 <div class="tabs" id="tabs" hidden><nav aria-label="Rooms">
   <a href="#home" data-tab="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>Home</a>
-  <a href="#think" data-tab="think"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg>Think</a>
-  <a href="#gifts" data-tab="gifts"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18"/><path d="M12 8c-2-4-6-4-6-1.5S10 8 12 8zm0 0c2-4 6-4 6-1.5S14 8 12 8z"/></svg>Gifts</a>
   <a href="#body" data-tab="body"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9v6M18 9v6M3 11v2M21 11v2M6 12h12"/></svg>Health</a>
+  <a href="#money" data-tab="money"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 7a6 6 0 1 0 0 10"/><path d="M5 10h8M5 14h8"/></svg>Money</a>
+  <a href="#think" data-tab="think"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg>Think</a>
+  <a href="#people" data-tab="people"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.8 3 2.6 3.5 5.2"/></svg>People</a>
   <a href="#admin" data-tab="admin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l2 2 4-4"/><rect x="4" y="4" width="16" height="16" rx="3"/></svg>Admin</a>
 </nav></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>
