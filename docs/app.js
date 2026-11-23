@@ -87,9 +87,14 @@ function show(){
   VIEWS.forEach(v => { $("v-" + v).hidden = !authed || v !== route; });
   const tab = TAB_OF[route] || route;
   document.querySelectorAll(".tabs a").forEach(a => a.classList.toggle("on", a.dataset.tab === tab));
-  window.scrollTo(0,0); render();
+  window.scrollTo(0,0); render(); if (typeof track === "function") track("view", route);
 }
 window.addEventListener("hashchange", show);
+// Usage counts, so the 6 Dec review can cut what never gets touched (one doc per day, no content stored)
+let usePend = {}, useT = null;
+function track(kind, name){ if (!name) return; const k = kind + ":" + name; usePend[k] = (usePend[k] || 0) + 1; clearTimeout(useT); useT = setTimeout(() => { const d = todayIso(), cur = Object.assign({}, get("usage", d) || {}); Object.entries(usePend).forEach(([k2,n]) => { cur[k2] = (cur[k2] || 0) + n; }); usePend = {}; set("usage", d, cur); }, 4000); }
+document.addEventListener("click", e => { const el = e.target.closest("button, a, [data-theme], .tile3, .quest"); if (!el) return;
+  const ds = Object.keys(el.dataset || {})[0]; track("tap", route + "." + (ds || el.id || (el.className || "").toString().split(" ")[0] || el.tagName.toLowerCase())); }, true);
 function toast(el, html, undo){
   el.innerHTML = html + (undo ? ' <button type="button">Undo</button>' : "");
   if (undo) el.querySelector("button").onclick = () => { undo(); el.textContent = "Undone."; };
