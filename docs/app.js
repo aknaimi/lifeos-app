@@ -197,8 +197,10 @@ function renderHome(){
 
   // Offline
   const off = get("meta","offline") || {}, wkOff = get("offline", mon) || {}, offDone = wkOff.done || [];
-  $("home-strip").innerHTML = (off.recharges || []).map(r => { const on = offDone.includes(r.id), bg = r.img ? "url('" + esc(r.img) + "')" : esc(r.bg || "#555");
-    return '<button class="tile' + (on ? " done" : "") + '" data-off="' + esc(r.id) + '" aria-pressed="' + on + '" style="background:' + bg + ';background-size:cover;background-position:center">' + (r.img ? "" : '<span class="em">' + esc(r.em || "") + '</span>') + '<span class="ck">' + (on ? "✓" : "") + '</span><span class="nm">' + esc(r.name) + (on ? "<small>Done this week · +10</small>" : "") + '</span></button>'; }).join("");
+  const offT = r => { const on = offDone.includes(r.id), bg = r.img ? "url('" + esc(r.img) + "')" : esc(r.bg || "#555");
+    return '<button class="tile' + (on ? " done" : "") + '" data-off="' + esc(r.id) + '" aria-pressed="' + on + '" style="background:' + bg + ';background-size:cover;background-position:center">' + (r.img ? "" : '<span class="em">' + esc(r.em || "") + '</span>') + '<span class="ck">' + (on ? "✓" : "") + '</span><span class="nm">' + esc(r.name) + (on ? "<small>Done this week · +10</small>" : "") + '</span></button>'; };
+  const rc = off.recharges || [];
+  $("home-strip").innerHTML = '<div class="offbig">' + rc.slice(0,2).map(offT).join("") + '</div>' + (rc.length > 2 ? '<div class="strip sm">' + rc.slice(2).map(offT).join("") + '</div>' : "");
 
   $("home-badges").innerHTML = (h.badges || []).map(bd => '<div class="badge' + (bd.earned ? " on" : "") + '"><b>' + esc(bd.name) + '</b><span class="small">' + esc(bd.earned ? "Earned " + bd.earned : (bd.how || "")) + '</span>' + (!bd.earned && bd.of ? '<div class="bprog"><i style="width:' + Math.round((bd.have||0)/bd.of*100) + '%"></i></div><span class="small">' + (bd.have||0) + " of " + bd.of + "</span>" : "") + '</div>').join("");
 }
@@ -375,12 +377,14 @@ function renderMoney(){
   // Ways to save
   const sv = m.save || [];
   $("mo-save").hidden = !sv.length;
-  $("mo-save").innerHTML = '<div class="lab"><span>Ways to save</span><span>' + esc(m.saveTotal || "") + '</span></div>' + sv.map(x => '<div class="srow"><b>' + esc(x.v) + '</b><span>' + esc(x.t) + '</span></div>').join("");
+  const sl = m.saveLog || {}, mNow = todayIso().slice(0,7), MS = ["2026-11","2026-12","2027-01","2027-02","2027-03","2027-04"];
+  $("mo-save").innerHTML = '<div class="lab"><span>Ways to save</span><span>' + esc(m.saveTotal || "") + '</span></div>' + sv.map((x,i) => { const k = x.k || String(i), log = sl[k] || {};
+    return '<div class="srow' + (x.done ? " sdone" : "") + '"><b>' + esc(x.v) + '</b><span>' + esc(x.t) + (x.done ? ' <em class="tag">done ✓</em>' : "") + '<span class="mdots">' + MS.map(mo => '<button class="md' + (log[mo] ? " on" : "") + (mo === mNow ? " now" : "") + '"' + (mo > mNow ? " disabled" : "") + ' data-sl="' + esc(k) + '" data-mo2="' + mo + '">' + MONTHS[Number(mo.slice(5))-1].slice(0,1) + '</button>').join("") + '</span></span></div>'; }).join("") + '<div class="small" style="margin-top:6px">Tap the month when you kept it.</div>';
   // Big wants
   const big = all("wish").filter(w => BIG.includes(w.cat) && w.state === "want").sort((a,b) => (b.price||0) - (a.price||0));
   $("mo-goals").hidden = !big.length;
   $("mo-goals").innerHTML = '<div class="lab"><span>Saving for</span><span>big wants</span></div>' + big.map(w => { const pot = (m.pots2 || {})[w.id] || 0, pr = w.price || num(w.pr);
-    return '<div class="goal">' + (w.img ? '<img src="' + esc(w.img) + '" alt="">' : '<span class="gph"></span>') + '<span class="t"><b>' + esc(w.name) + '</b><span>' + esc(w.brand || w.cat) + (pr ? " · " + eur(pr) : "") + '</span><span class="meter sm"><i style="width:' + (pr ? Math.min(100, Math.round(pot/pr*100)) : 0) + '%"></i></span></span><span class="small">' + (pot ? eur(pot) : "pot opens") + '</span></div>'; }).join("");
+    return '<div class="goal">' + (w.img ? '<img src="' + esc(w.img) + '" alt="">' : '<span class="gph"></span>') + '<span class="t"><b>' + esc(w.name) + '</b><span>' + esc(w.brand || w.cat) + (pr ? " · " + eur(pr) : "") + '</span><span class="meter sm"><i style="width:' + (pr ? Math.min(100, Math.round(pot/pr*100)) : 0) + '%"></i></span><span class="chips" style="margin-top:6px"><button class="chip sm" data-pot="' + esc(w.id) + '" data-amt="100">+€100</button><button class="chip sm" data-pot="' + esc(w.id) + '" data-amt="500">+€500</button>' + (pot ? '<button class="chip sm" data-pot="' + esc(w.id) + '" data-amt="-100">−€100</button>' : "") + '</span></span><span class="small">' + (pot ? eur(pot) + (pr ? "<br>" + Math.round(pot/pr*100) + "%" : "") : "start") + '</span></div>'; }).join("");
 }
 function inferYear(list, x){ const i = list.indexOf(x), n = list.length, mi = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; let y = new Date().getFullYear(), last = mi.indexOf(list[n-1].m);
   for (let k = n-1; k > i; k--){ const a = mi.indexOf(list[k].m), b = mi.indexOf(list[k-1].m); if (b > a) y--; } return String(y); }
@@ -405,8 +409,8 @@ function renderThink(){
   // Malmasson card
   const mal = meta.malmasson;
   $("think-mal").hidden = !mal;
-  if (mal) $("think-mal").innerHTML = '<div class="lab"><span>For Malmasson · ' + esc(mal.week || "this week") + '</span><span>you send it</span></div>' +
-    ['finished','loose'].filter(k => mal[k]).map(k => '<div class="msg"><div class="small">' + (k === "finished" ? "Ready to send" : "Fill in yourself") + '</div><p>' + esc(mal[k]) + '</p><button class="btn sm" data-copy="' + k + '">Copy</button></div>').join("");
+  if (mal) $("think-mal").innerHTML = '<details><summary class="lab" style="margin:0"><span>For Malmasson · ' + esc(mal.week || "this week") + '</span><span>▾</span></summary>' +
+    ['finished','loose'].filter(k => mal[k]).map(k => '<div class="msg"><div class="small">' + (k === "finished" ? "Ready to send" : "Fill in yourself") + '</div><p>' + esc(mal[k]) + '</p><button class="btn sm" data-copy="' + k + '">Copy</button></div>').join("") + '</details>';
   // Observations
   const obs = meta.observations || [];
   $("think-obs").hidden = !obs.length;
@@ -445,6 +449,8 @@ function renderThink(){
 $("think-save").addEventListener("click", () => { if (capture($("think-text").value, $("think-toast"))) $("think-text").value = ""; });
 $("think-text").addEventListener("keydown", e => { if (e.key === "Enter") $("think-save").click(); });
 document.addEventListener("click", e => {
+  const sb2 = e.target.closest("[data-sl]"); if (sb2){ const m = get("meta","money") || {}, log = Object.assign({}, m.saveLog || {}), k = sb2.dataset.sl, row = Object.assign({}, log[k] || {}); row[sb2.dataset.mo2] = !row[sb2.dataset.mo2]; log[k] = row; update("meta","money",{saveLog:log}); if (row[sb2.dataset.mo2]) pop("kept ✓", sb2); return; }
+  const pb = e.target.closest("[data-pot]"); if (pb){ const m = get("meta","money") || {}, pots = Object.assign({}, m.pots2 || {}); pots[pb.dataset.pot] = Math.max(0, (pots[pb.dataset.pot] || 0) + Number(pb.dataset.amt)); update("meta","money",{pots2:pots}); return; }
   const g = e.target.closest("[data-theme]"); if (g){ openTheme = openTheme === g.dataset.theme ? null : g.dataset.theme; render(); return; }
   const f = e.target.closest("[data-file]"); if (f){ update("thoughts", f.dataset.file, {thread:f.dataset.to, filedBy:"you"}); return; }
   const ob = e.target.closest("[data-obs]"); if (ob){ const i = Number(ob.dataset.obs); openObs = openObs === i ? null : i; render(); return; }
@@ -486,9 +492,9 @@ function renderPeople(){
   $("gifts-names").innerHTML = ps.map(p => '<option value="' + esc(p.name) + '">').join("");
   const dt = get("meta","dating") || {}, h = home();
   const mon2 = mondayIso(), op = all("wins").filter(w => (w.key === "opener" || w.key === "date" || w.key === "event") && String(w.date) >= mon2);
-  $("pe-dating").innerHTML = '<div class="lab"><span>Dating</span><span>' + esc(h.boss ? "Boss: " + h.boss.name : "") + '</span></div><div class="focus-s">' + esc(dt.title || "The life you're building room for.") + '</div>' +
+  $("pe-dating").innerHTML = '<div class="lab"><span>♥ Dating</span><span>' + esc(h.boss ? "Boss: " + h.boss.name : "") + '</span></div><div class="focus-s">' + esc(dt.title || "The life you're building room for.") + '</div>' +
     '<div class="dstats"><span><b>' + op.filter(w => w.key === "opener").length + '</b>openers this week</span><span><b>' + op.filter(w => w.key === "event").length + '</b>events</span><span><b>' + op.filter(w => w.key === "date").length + '</b>dates</span></div>' +
-    '<div class="chips" style="margin:10px 0"><button class="chip sm" data-dw="opener">Talked to someone new <span>+20</span></button><button class="chip sm" data-dw="date">Date <span>+100</span></button></div>' +
+    '<div class="chips" style="margin:10px 0"><button class="chip sm" data-dw="opener">Talked to someone new <span>+20</span></button><button class="chip sm" data-dw="run">Run club <span>+10</span></button><button class="chip sm" data-dw="event">Event <span>+20</span></button><button class="chip sm" data-dw="date">Date <span>+100</span></button></div>' +
     ((dt.where || []).length ? '<div class="lab" style="margin:8px 0 4px">Where this week</div>' + dt.where.map(x => '<div class="row"><span class="t">' + esc(x.t) + '<span>' + esc(x.w || "") + '</span></span></div>').join("") : "") +
     ((dt.rules || []).length ? '<details style="margin-top:8px"><summary class="lab" style="margin:0"><span>Your rules</span><span>▾</span></summary>' + dt.rules.map(r => '<div class="small" style="padding:4px 0">· ' + esc(r) + '</div>').join("") + ((dt.why || []).length ? '<div class="lab" style="margin:10px 0 4px">Why</div>' + dt.why.map(r => '<div class="small" style="padding:4px 0">' + esc(r) + '</div>').join("") : "") + '</details>' : "");
   const ws = all("wish"), want = ws.filter(w => w.state === "want").length, bought = ws.filter(w => w.state === "bought").length;
@@ -501,15 +507,15 @@ $("bday-day").innerHTML = '<option value="">Day</option>' + [...Array(31)].map((
 $("bday-month").innerHTML = '<option value="">Month</option>' + MONTHS.map((m,i) => '<option value="' + (i+1) + '">' + m.slice(0,3) + "</option>").join("");
 document.addEventListener("click", e => {
   const d = e.target.closest("[data-bdel]"); if (d){ const P = get("meta","people") || {}, hidden = (P.hidden || []).concat([d.dataset.bdel]); update("meta","people",{hidden}); const b = all("birthdays").find(x => x.name === d.dataset.bdel); toast($("bday-toast"), "Removed " + esc(d.dataset.bdel) + ".", () => update("meta","people",{hidden:hidden.filter(x => x !== d.dataset.bdel)})); return; }
-  const dw = e.target.closest("[data-dw]"); if (dw){ logWin(dw.dataset.dw === "date" ? {key:"date", label:"Date", xp:100} : {key:"opener", label:"Talked to someone new", xp:20}, $("pe-callToast"), dw); }
+  const dw = e.target.closest("[data-dw]"); if (dw){ logWin(({date:{key:"date", label:"Date", xp:100}, run:{key:"run", label:"Run club", xp:10}, event:{key:"event", label:"Event attended", xp:20}})[dw.dataset.dw] || {key:"opener", label:"Talked to someone new", xp:20}, $("pe-callToast"), dw); }
 });
 $("pe-called").addEventListener("click", () => logWin({key:"call", label:"Called someone I love", xp:10}, $("pe-callToast"), $("pe-called")));
 $("pe-texted").addEventListener("click", () => logWin({key:"text", label:"Texted someone I love", xp:5}, $("pe-callToast"), $("pe-texted")));
 $("gifts-form").addEventListener("submit", e => { e.preventDefault();
-  const who = $("gifts-who").value.trim(), t = $("gifts-idea").value.trim();
-  if (!who || !t){ $("gifts-toast").textContent = "Add who it's for and the idea."; return; }
+  const raw = $("gifts-idea").value.trim(), m = raw.match(/^(.+?)\s+for\s+([^,]+)$/i), t = m ? m[1].trim() : raw, who = m ? m[2].trim() : "";
+  if (!t){ $("gifts-toast").textContent = "Type the idea, then 'for' and who."; return; }
   const id = add("giftIdeas", {who, t, at:nowIso(), given:false});
-  $("gifts-who").value = ""; $("gifts-idea").value = "";
+  $("gifts-idea").value = "";
   toast($("gifts-toast"), "Saved for " + esc(who) + ".", () => del("giftIdeas", id)); });
 $("bday-form").addEventListener("submit", e => { e.preventDefault();
   const name = $("bday-name").value.trim(), d = Number($("bday-day").value), m = Number($("bday-month").value);

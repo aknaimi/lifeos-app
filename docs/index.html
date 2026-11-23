@@ -14,7 +14,7 @@
 <link rel="icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=7">
+<link rel="stylesheet" href="app.css?v=10">
 </head>
 <body>
 <div class="sync" id="sync" hidden></div>
@@ -56,7 +56,7 @@
 
   <section class="panel">
     <div class="lab"><span>Offline</span><span>tap = +10</span></div>
-    <div class="strip" id="home-strip"></div><div class="toast" id="home-offToast" aria-live="polite"></div>
+    <div id="home-strip"></div><div class="toast" id="home-offToast" aria-live="polite"></div>
   </section>
 
 </main>
@@ -75,13 +75,7 @@
 <!-- HEALTH -->
 <main class="view" id="v-body" hidden>
   <div class="top"><span class="brand">Health</span><span class="small" id="body-updated"></span></div>
-  <section class="panel">
-    <div class="lab"><span>Saturday weight</span><span id="body-kgNow"></span></div>
-    <div id="body-wchart"></div>
-    <div class="small" style="margin:8px 0 10px">Saturday morning, before food. It saves to your weight log and draws the line here. /life reads it.</div>
-    <div class="cap"><input class="field" id="body-kg" type="number" step="0.1" min="40" max="150" inputmode="decimal" placeholder="kg" aria-label="Weight in kg"><button class="btn solid" id="body-saveKg">Save</button></div>
-    <div class="toast" id="body-kgToast" aria-live="polite"></div>
-  </section>
+  <section class="fuelrow"><span class="small" id="body-fuelN">Food today</span><div class="chips" id="body-fuel"></div></section>
   <section class="panel"><div class="lab" id="body-weekLab">This week</div><div class="week7" id="body-week"></div></section>
   <section class="panel">
     <div class="lab">Pick today's session</div><div class="grid3" id="body-picks"></div>
@@ -90,10 +84,16 @@
     <div class="grid2" style="margin-top:12px"><button class="btn solid" id="body-finish">Finish session · +20</button><button class="btn" id="body-padel">Played padel · +10</button></div>
     <div class="toast" id="body-toast" aria-live="polite"></div>
   </section>
-  <section class="panel"><div class="lab"><span>Getting stronger</span><span id="body-strN"></span></div><div id="body-chart"></div><div class="chips" id="body-strPick" style="margin-top:8px"></div></section>
+  <section class="panel" hidden><div class="lab"><span>Getting stronger</span><span id="body-strN"></span></div><div id="body-chart"></div><div class="chips" id="body-strPick" style="margin-top:8px"></div></section>
 
 
-  <section class="fuelrow"><span class="small" id="body-fuelN">Food today</span><div class="chips" id="body-fuel"></div></section>
+  <section class="panel">
+    <div class="lab"><span>Saturday weight</span><span id="body-kgNow"></span></div>
+    <div id="body-wchart"></div>
+    <div class="small" style="margin:6px 0 8px">Saturday, before food.</div>
+    <div class="cap"><input class="field" id="body-kg" type="number" step="0.1" min="40" max="150" inputmode="decimal" placeholder="kg" aria-label="Weight in kg"><button class="btn solid" id="body-saveKg">Save</button></div>
+    <div class="toast" id="body-kgToast" aria-live="polite"></div>
+  </section>
   <section class="panel"><details><summary class="lab" style="margin:0"><span>Rules</span><span>▾</span></summary><div id="body-rules" style="margin-top:8px"></div></details></section>
 </main>
 
@@ -115,34 +115,19 @@
     <div class="cap"><input class="field" id="think-text" placeholder="What's on your mind?" aria-label="New thought" enterkeyhint="send"><button class="btn solid" id="think-save">Save</button></div>
     <div class="toast" id="think-toast" aria-live="polite"></div>
   </section>
-  <section class="panel mal" id="think-mal"></section>
+    <section class="panel"><div class="lab"><span>Your web</span><span class="small">tap a theme</span></div><div id="think-web"></div><div id="think-open"></div></section>
   <section class="panel" id="think-obs"></section>
-  <section class="panel"><div class="lab"><span>Your web</span><span class="small">tap a theme</span></div><div id="think-web"></div><div id="think-open"></div></section>
   <section class="panel" id="think-looseWrap" hidden><div class="lab"><span>New notes</span><span>sorted by Claude</span></div><div id="think-loose"></div></section>
+  <section class="panel" id="think-mal"></section>
   <section class="panel"><details><summary class="lab" style="margin:0"><span id="think-sLab">Side projects</span><span>▾</span></summary><div id="think-side" style="margin-top:6px"></div></details></section>
 </main>
 
 <!-- PEOPLE -->
 <main class="view" id="v-people" hidden>
   <div class="top"><span class="brand">People</span></div>
-  <section class="panel"><div class="lab">Coming up</div><div id="pe-next"></div></section>
-  <section class="panel callcard"><div><div class="focus-s">Call or text someone you love</div><div class="small" id="pe-callLast"></div></div><div class="stack"><button class="btn solid sm" id="pe-called">Called +10</button><button class="btn sm" id="pe-texted">Texted +5</button></div></section>
-  <div class="toast" id="pe-callToast" aria-live="polite" style="margin:-4px 6px 0"></div>
-  <section class="panel">
-    <div class="lab"><span id="gifts-openLab">Gifts to get</span><span>Bought = +20</span></div>
-    <div id="gifts-open"></div>
-    <form class="g" id="gifts-form" autocomplete="off" style="margin-top:10px">
-      <input class="field full" id="gifts-who" list="gifts-names" placeholder="For who" aria-label="For who" enterkeyhint="next">
-      <input class="field" id="gifts-idea" placeholder="The idea, or what they said" aria-label="Gift idea" enterkeyhint="done">
-      <button class="btn solid" type="submit">Save</button>
-    </form>
-    <datalist id="gifts-names"></datalist>
-    <div class="toast" id="gifts-toast" aria-live="polite"></div>
-    <details id="gifts-doneWrap" style="margin-top:6px"><summary class="lab" style="margin:0"><span>Done</span><span>▾</span></summary><div id="gifts-done"></div></details>
-  </section>
-  <section class="panel" id="pe-dating"></section>
-  <a class="tile2" href="#wish" id="pe-wish"></a>
-  <section class="panel"><details><summary class="lab" style="margin:0"><span>Birthdays</span><span>▾</span></summary>
+  <section class="panel love" id="pe-dating"></section>
+  <section class="panel"><div class="lab"><span>Birthdays</span><span>next 3</span></div><div id="pe-next"></div>
+    <details style="margin-top:8px"><summary class="lab" style="margin:0"><span>All birthdays · add one</span><span>▾</span></summary>
     <form class="g" id="bday-form" autocomplete="off" style="grid-template-columns:minmax(0,1fr) 70px 86px;margin-top:10px">
       <input class="field" id="bday-name" placeholder="Name" aria-label="Name">
       <select class="field" id="bday-day" aria-label="Day"></select>
@@ -152,6 +137,20 @@
     <div class="toast" id="bday-toast" aria-live="polite"></div>
     <div id="bday-list"></div>
   </details></section>
+  <section class="panel callcard"><div><div class="focus-s">Call or text someone you love</div><div class="small" id="pe-callLast"></div></div><div class="stack"><button class="btn solid sm" id="pe-called">Called +10</button><button class="btn sm" id="pe-texted">Texted +5</button></div></section>
+  <div class="toast" id="pe-callToast" aria-live="polite" style="margin:-4px 6px 0"></div>
+  <section class="panel">
+    <div class="lab"><span id="gifts-openLab">Gifts to get</span><span>Bought = +20</span></div>
+    <div id="gifts-open"></div>
+    <form class="g" id="gifts-form" autocomplete="off" style="margin-top:10px">
+      <input class="field" id="gifts-idea" placeholder="Idea for who · e.g. Leather wallet for Robin" aria-label="Gift idea and who it's for" enterkeyhint="done">
+      <button class="btn solid" type="submit">Save</button>
+    </form>
+    <datalist id="gifts-names"></datalist>
+    <div class="toast" id="gifts-toast" aria-live="polite"></div>
+    <details id="gifts-doneWrap" style="margin-top:6px"><summary class="lab" style="margin:0"><span>Done</span><span>▾</span></summary><div id="gifts-done"></div></details>
+  </section>
+  <a class="tile2" href="#wish" id="pe-wish"></a>
 </main>
 
 <!-- WISHLIST -->
@@ -203,6 +202,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
-<script src="app.js?v=9"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>
