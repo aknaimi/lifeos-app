@@ -14,7 +14,7 @@
 <link rel="icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=6">
+<link rel="stylesheet" href="app.css?v=7">
 </head>
 <body>
 <div class="sync" id="sync" hidden></div>
@@ -118,7 +118,7 @@
   <section class="panel mal" id="think-mal"></section>
   <section class="panel" id="think-obs"></section>
   <section class="panel"><div class="lab"><span>Your web</span><span class="small">tap a theme</span></div><div id="think-web"></div><div id="think-open"></div></section>
-  <section class="panel" id="think-looseWrap" hidden><div class="lab"><span>Waiting to be linked</span><span>tap a theme to link</span></div><div id="think-loose"></div></section>
+  <section class="panel" id="think-looseWrap" hidden><div class="lab"><span>New notes</span><span>sorted by Claude</span></div><div id="think-loose"></div></section>
   <section class="panel"><details><summary class="lab" style="margin:0"><span id="think-sLab">Side projects</span><span>▾</span></summary><div id="think-side" style="margin-top:6px"></div></details></section>
 </main>
 
@@ -183,6 +183,7 @@
   <button class="btn" id="sheet-add" style="width:100%">+ Add a win</button>
 </div></div>
 
+<div class="sheet" id="tsheet" hidden><div class="sheetin"><div class="lab"><span>Theme</span><button class="link" id="tsheet-done">Done</button></div><div id="tsheet-body"></div></div></div>
 <div class="sheet" id="wsheet" hidden><div class="sheetin" style="text-align:center">
   <div class="small">What time were you up?</div>
   <input type="time" class="timepick" id="wsheet-t" value="06:00" aria-label="Wake time">
@@ -202,6 +203,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

@@ -392,7 +392,7 @@ document.addEventListener("click", e => {
 });
 
 /* ---------- Think ---------- */
-let openTheme = null, linkNote = null;
+let openTheme = null, linkNote = null, openObs = null;
 function renderThink(){
   const meta = get("meta","think") || {}, threads = all("threads"), thoughts = all("thoughts");
   const liveT = threads.filter(t => t.state !== "landed" && t.state !== "letgo").sort((a,b) => (a.order||0) - (b.order||0));
@@ -405,7 +405,10 @@ function renderThink(){
   // Observations
   const obs = meta.observations || [];
   $("think-obs").hidden = !obs.length;
-  $("think-obs").innerHTML = '<div class="lab"><span>Where you are</span><span>' + esc(meta.obsDate || "") + '</span></div>' + obs.map(o => '<div class="obs ' + esc(o.kind || "") + '"><span class="ok">' + esc(({bottleneck:"Bottleneck", pattern:"Pattern", next:"Next move"})[o.kind] || "Note") + '</span><div>' + esc(o.t) + '</div></div>').join("");
+  const od = meta.obsDate || "", wins = all("wins");
+  $("think-obs").innerHTML = '<div class="lab"><span>Where you are</span><span>' + esc(od) + '</span></div>' + obs.map((o,i) => { const wid = "obs-" + od.replace(/\W/g,"") + "-" + i, on = openObs === i, got = !!get("wins", wid);
+    return '<div class="obs ' + esc(o.kind || "") + (on ? " open" : "") + '"><button class="obshd" data-obs="' + i + '"><span class="ok">' + esc(({bottleneck:"Bottleneck", pattern:"Pattern", next:"Next move"})[o.kind] || "Note") + '</span><span>' + esc(o.t) + '</span><span class="chev">' + (on ? "−" : "+") + '</span></button>' +
+      (on ? '<div class="obsx">' + (o.why ? '<div class="small"><b>Where I saw it</b> · ' + esc(o.why) + '</div>' : "") + (o.step ? '<button class="obsstep' + (got ? " done" : "") + '" data-obsstep="' + i + '"><span class="c">' + (got ? "✓" : "") + '</span><span>' + esc(o.step) + '</span><span class="xp">+10</span></button>' : "") + '</div>' : "") + '</div>'; }).join("");
   // Web
   const W = 330, H = 300, cx = W/2, cy = H/2, R = 112, n = liveT.length || 1;
   const pos = {}; liveT.forEach((t,i) => { const a = -Math.PI/2 + i/n*2*Math.PI; pos[t.id] = {x: cx + R*Math.cos(a), y: cy + R*Math.sin(a)}; });
@@ -418,11 +421,18 @@ function renderThink(){
     liveT.map(t => { const c = count(t), r = 9 + Math.min(14, c*1.6), p2 = pos[t.id], lx = p2.x, ly = p2.y + (p2.y < cy ? -r - 7 : r + 15);
       return '<g class="node' + (openTheme === t.id ? " on" : "") + (hot.has(t.id) ? " hot" : "") + '" data-theme="' + esc(t.id) + '"><circle cx="' + p2.x.toFixed(1) + '" cy="' + p2.y.toFixed(1) + '" r="' + r.toFixed(1) + '"/><text x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '">' + esc(t.title.length > 16 ? t.title.slice(0,15) + "…" : t.title) + '</text></g>'; }).join("") + '</svg>';
   const ot = liveT.find(t => t.id === openTheme);
-  $("think-open").innerHTML = ot ? '<div class="theme"><div class="focus-s">' + esc(ot.title) + '</div>' + (ot.q ? '<div class="small" style="margin:4px 0 8px">' + esc(ot.q) + '</div>' : "") + ((ot.links || []).length ? '<div class="small">Linked to: ' + ot.links.map(l => esc((threads.find(x => x.id === l) || {}).title || l)).join(", ") + '</div>' : "") + thoughts.filter(x => x.thread === ot.id).sort((a,b) => String(b.at).localeCompare(String(a.at))).slice(0,8).map(x => '<div class="note">' + esc(x.t) + '<span>' + esc(fmt(x.at)) + '</span></div>').join("") + '</div>' : '<div class="small">Bigger dots have more notes. Orange ones are where your bottlenecks sit.</div>';
+  $("think-open").innerHTML = '<div class="small">Bigger dots have more notes. Orange ones are where your bottlenecks sit. Tap one.</div>';
+  $("tsheet").hidden = !ot;
+  if (ot){ const lk = (ot.links || []).map(l => (threads.find(x => x.id === l) || {}).title || l);
+    $("tsheet-body").innerHTML = '<div class="serif" style="font-size:26px;line-height:1.15;margin-bottom:6px">' + esc(ot.title) + '</div>' + (ot.q ? '<div class="small" style="margin-bottom:14px">' + esc(ot.q) + '</div>' : "") +
+      '<div class="tread">' + esc(ot.read || "No read yet. It comes with Saturday's /life.") + '</div>' + (lk.length ? '<div class="small" style="margin-top:12px">Connected to ' + esc(lk.join(", ")) + '</div>' : ""); }
   // Loose notes: link by tapping a theme chip
+  const tTitle = id => (threads.find(t => t.id === id) || {}).title || id;
+  const sorted = thoughts.filter(x => x.filedBy === "claude" && !x.ok && x.thread && x.thread !== "mood").sort((a,b) => String(b.at).localeCompare(String(a.at)));
   const loose = thoughts.filter(x => !x.thread).sort((a,b) => String(b.at).localeCompare(String(a.at)));
-  $("think-looseWrap").hidden = !loose.length;
-  $("think-loose").innerHTML = loose.map(x => '<div class="note">' + esc(x.t) + '<span>' + esc(fmt(x.at)) + '</span><div class="chips scroll" style="margin-top:6px">' + liveT.map(t => '<button class="chip sm" data-file="' + esc(x.id) + '" data-to="' + esc(t.id) + '">' + esc(t.title) + '</button>').join("") + '</div></div>').join("");
+  $("think-looseWrap").hidden = !(loose.length || sorted.length);
+  $("think-loose").innerHTML = sorted.map(x => '<div class="note">' + esc(x.t) + '<span>' + esc(fmt(x.at)) + '</span><div class="filed">→ <b>' + esc(tTitle(x.thread)) + '</b>' + (x.why ? ' · ' + esc(x.why) : "") + '</div><div class="chips" style="margin-top:6px"><button class="chip sm" data-nok="' + esc(x.id) + '">Right ✓</button><button class="chip sm" data-nundo="' + esc(x.id) + '">Undo</button></div></div>').join("") +
+    loose.map(x => '<div class="note">' + esc(x.t) + '<span>' + esc(fmt(x.at)) + '</span><div class="small" style="margin-top:4px">Not sorted yet. Pick a theme, or /life sorts it on Saturday.</div><div class="chips scroll" style="margin-top:6px">' + liveT.map(t => '<button class="chip sm" data-file="' + esc(x.id) + '" data-to="' + esc(t.id) + '">' + esc(t.title) + '</button>').join("") + '</div></div>').join("");
   const side = (get("meta","side") || {}).projects || [];
   $("think-sLab").textContent = "Side projects · " + side.filter(p => p.on).length + " on";
   $("think-side").innerHTML = side.map(p => '<div class="row"' + (p.on ? "" : ' style="opacity:.55"') + '><span class="t"><b style="font-weight:500">' + esc(p.name) + '</b><span>Next: ' + esc(p.next || "") + '</span></span><span class="small">' + esc(p.progress ? p.progress.now + " / " + p.progress.goal : (p.status || "")) + '</span></div>').join("") || '<div class="empty">None yet.</div>';
@@ -432,6 +442,12 @@ $("think-text").addEventListener("keydown", e => { if (e.key === "Enter") $("thi
 document.addEventListener("click", e => {
   const g = e.target.closest("[data-theme]"); if (g){ openTheme = openTheme === g.dataset.theme ? null : g.dataset.theme; render(); return; }
   const f = e.target.closest("[data-file]"); if (f){ update("thoughts", f.dataset.file, {thread:f.dataset.to, filedBy:"you"}); return; }
+  const ob = e.target.closest("[data-obs]"); if (ob){ const i = Number(ob.dataset.obs); openObs = openObs === i ? null : i; render(); return; }
+  const os = e.target.closest("[data-obsstep]"); if (os){ const meta = get("meta","think") || {}, i = Number(os.dataset.obsstep), o = (meta.observations || [])[i]; if (!o) return; const wid = "obs-" + String(meta.obsDate || "").replace(/\W/g,"") + "-" + i;
+    if (get("wins", wid)) del("wins", wid); else { set("wins", wid, {key:"step", label:"Step · " + o.step, xp:10, date:todayIso(), at:nowIso(), synced:false}); pop(10, os); } return; }
+  const nk = e.target.closest("[data-nok]"); if (nk){ update("thoughts", nk.dataset.nok, {ok:true}); return; }
+  const nu = e.target.closest("[data-nundo]"); if (nu){ update("thoughts", nu.dataset.nundo, {thread:"", filedBy:"", why:""}); return; }
+  if (e.target.id === "tsheet" || e.target.id === "tsheet-done"){ openTheme = null; render(); return; }
   const c = e.target.closest("[data-copy]"); if (c){ const mal = (get("meta","think") || {}).malmasson || {}; const txt = mal[c.dataset.copy] || ""; (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => { c.textContent = "Copied ✓"; }).catch(() => { c.textContent = "Hold the text to copy"; }); }
 });
 
