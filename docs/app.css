@@ -272,3 +272,14 @@ form.g .full{grid-column:1/-1}
 .md.on{background:var(--warn);color:#2a1503;border-color:transparent}
 .md:disabled{opacity:.35;cursor:default}
 .srow .tag{font-style:normal;font-size:11px;color:var(--glow);margin-left:4px}
+
+.offbig .tile{height:150px}
+#body-fuel{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+#body-fuel .chip{padding:18px 12px;font-size:16px;border-radius:16px;justify-content:center;text-align:center}
+.bigcap{width:100%;min-height:96px;font-size:17px;line-height:1.45;resize:vertical;padding:14px}
+.mq{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:15px;line-height:1.4}
+.mq:first-of-type{border-top:0}.mq em{font-style:normal;font-size:12px;color:var(--muted)}
+.md{width:auto;padding:0 8px;border-radius:13px}
+.wishbig .wpics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.wishbig .wpics img{width:100%;aspect-ratio:1;object-fit:contain;background:#f1f1ee;border-radius:12px}
+.wrow{grid-template-columns:64px minmax(0,1fr) auto}.wrow img,.wrow .gph{width:64px;height:64px}

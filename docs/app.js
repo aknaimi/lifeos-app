@@ -200,7 +200,7 @@ function renderHome(){
   const offT = r => { const on = offDone.includes(r.id), bg = r.img ? "url('" + esc(r.img) + "')" : esc(r.bg || "#555");
     return '<button class="tile' + (on ? " done" : "") + '" data-off="' + esc(r.id) + '" aria-pressed="' + on + '" style="background:' + bg + ';background-size:cover;background-position:center">' + (r.img ? "" : '<span class="em">' + esc(r.em || "") + '</span>') + '<span class="ck">' + (on ? "✓" : "") + '</span><span class="nm">' + esc(r.name) + (on ? "<small>Done this week · +10</small>" : "") + '</span></button>'; };
   const rc = off.recharges || [];
-  $("home-strip").innerHTML = '<div class="offbig">' + rc.slice(0,2).map(offT).join("") + '</div>' + (rc.length > 2 ? '<div class="strip sm">' + rc.slice(2).map(offT).join("") + '</div>' : "");
+  $("home-strip").innerHTML = '<div class="offbig">' + rc.map(offT).join("") + '</div>';
 
   $("home-badges").innerHTML = (h.badges || []).map(bd => '<div class="badge' + (bd.earned ? " on" : "") + '"><b>' + esc(bd.name) + '</b><span class="small">' + esc(bd.earned ? "Earned " + bd.earned : (bd.how || "")) + '</span>' + (!bd.earned && bd.of ? '<div class="bprog"><i style="width:' + Math.round((bd.have||0)/bd.of*100) + '%"></i></div><span class="small">' + (bd.have||0) + " of " + bd.of + "</span>" : "") + '</div>').join("");
 }
@@ -379,12 +379,9 @@ function renderMoney(){
   $("mo-save").hidden = !sv.length;
   const sl = m.saveLog || {}, mNow = todayIso().slice(0,7), MS = ["2026-11","2026-12","2027-01","2027-02","2027-03","2027-04"];
   $("mo-save").innerHTML = '<div class="lab"><span>Ways to save</span><span>' + esc(m.saveTotal || "") + '</span></div>' + sv.map((x,i) => { const k = x.k || String(i), log = sl[k] || {};
-    return '<div class="srow' + (x.done ? " sdone" : "") + '"><b>' + esc(x.v) + '</b><span>' + esc(x.t) + (x.done ? ' <em class="tag">done ✓</em>' : "") + '<span class="mdots">' + MS.map(mo => '<button class="md' + (log[mo] ? " on" : "") + (mo === mNow ? " now" : "") + '"' + (mo > mNow ? " disabled" : "") + ' data-sl="' + esc(k) + '" data-mo2="' + mo + '">' + MONTHS[Number(mo.slice(5))-1].slice(0,1) + '</button>').join("") + '</span></span></div>'; }).join("") + '<div class="small" style="margin-top:6px">Tap the month when you kept it.</div>';
+    return '<div class="srow' + (x.done ? " sdone" : "") + '"><b>' + esc(x.v) + '</b><span>' + esc(x.t) + (x.done ? ' <em class="tag">done ✓</em>' : "") + '<span class="mdots">' + MS.map(mo => '<button class="md' + (log[mo] ? " on" : "") + (mo === mNow ? " now" : "") + '"' + (mo > mNow ? " disabled" : "") + ' data-sl="' + esc(k) + '" data-mo2="' + mo + '">' + MONTHS[Number(mo.slice(5))-1].slice(0,3) + '</button>').join("") + '</span></span></div>'; }).join("") + '<div class="small" style="margin-top:6px">Kept it that month? Tap the month.</div>';
   // Big wants
-  const big = all("wish").filter(w => BIG.includes(w.cat) && w.state === "want").sort((a,b) => (b.price||0) - (a.price||0));
-  $("mo-goals").hidden = !big.length;
-  $("mo-goals").innerHTML = '<div class="lab"><span>Saving for</span><span>big wants</span></div>' + big.map(w => { const pot = (m.pots2 || {})[w.id] || 0, pr = w.price || num(w.pr);
-    return '<div class="goal">' + (w.img ? '<img src="' + esc(w.img) + '" alt="">' : '<span class="gph"></span>') + '<span class="t"><b>' + esc(w.name) + '</b><span>' + esc(w.brand || w.cat) + (pr ? " · " + eur(pr) : "") + '</span><span class="meter sm"><i style="width:' + (pr ? Math.min(100, Math.round(pot/pr*100)) : 0) + '%"></i></span><span class="chips" style="margin-top:6px"><button class="chip sm" data-pot="' + esc(w.id) + '" data-amt="100">+€100</button><button class="chip sm" data-pot="' + esc(w.id) + '" data-amt="500">+€500</button>' + (pot ? '<button class="chip sm" data-pot="' + esc(w.id) + '" data-amt="-100">−€100</button>' : "") + '</span></span><span class="small">' + (pot ? eur(pot) + (pr ? "<br>" + Math.round(pot/pr*100) + "%" : "") : "start") + '</span></div>'; }).join("");
+
 }
 function inferYear(list, x){ const i = list.indexOf(x), n = list.length, mi = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; let y = new Date().getFullYear(), last = mi.indexOf(list[n-1].m);
   for (let k = n-1; k > i; k--){ const a = mi.indexOf(list[k].m), b = mi.indexOf(list[k-1].m); if (b > a) y--; } return String(y); }
@@ -407,9 +404,9 @@ function renderThink(){
   const liveT = threads.filter(t => t.state !== "landed" && t.state !== "letgo").sort((a,b) => (a.order||0) - (b.order||0));
   const count = t => thoughts.filter(x => x.thread === t.id).length + (Number(t.base)||0);
   // Malmasson card
-  const mal = meta.malmasson;
-  $("think-mal").hidden = !mal;
-  if (mal) $("think-mal").innerHTML = '<details><summary class="lab" style="margin:0"><span>For Malmasson · ' + esc(mal.week || "this week") + '</span><span>▾</span></summary>' +
+  const mal = meta.malmasson || {}, mq = meta.malQ || [];
+  $("think-mal").hidden = !mq.length && !mal.finished;
+  $("think-mal").innerHTML = '<div class="lab"><span>Questions from Malmasson</span>' + (mal.finished ? '<button class="link" data-copy="finished">Copy this week\'s text</button>' : "") + '</div>' + mq.map(x => '<div class="mq"><span>' + esc(x.q) + '</span><em>' + esc(x.when || "") + '</em></div>').join("");
     ['finished','loose'].filter(k => mal[k]).map(k => '<div class="msg"><div class="small">' + (k === "finished" ? "Ready to send" : "Fill in yourself") + '</div><p>' + esc(mal[k]) + '</p><button class="btn sm" data-copy="' + k + '">Copy</button></div>').join("") + '</details>';
   // Observations
   const obs = meta.observations || [];
@@ -447,7 +444,7 @@ function renderThink(){
   $("think-side").innerHTML = side.map(p => '<div class="row"' + (p.on ? "" : ' style="opacity:.55"') + '><span class="t"><b style="font-weight:500">' + esc(p.name) + '</b><span>Next: ' + esc(p.next || "") + '</span></span><span class="small">' + esc(p.progress ? p.progress.now + " / " + p.progress.goal : (p.status || "")) + '</span></div>').join("") || '<div class="empty">None yet.</div>';
 }
 $("think-save").addEventListener("click", () => { if (capture($("think-text").value, $("think-toast"))) $("think-text").value = ""; });
-$("think-text").addEventListener("keydown", e => { if (e.key === "Enter") $("think-save").click(); });
+$("think-text").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); $("think-save").click(); } });
 document.addEventListener("click", e => {
   const sb2 = e.target.closest("[data-sl]"); if (sb2){ const m = get("meta","money") || {}, log = Object.assign({}, m.saveLog || {}), k = sb2.dataset.sl, row = Object.assign({}, log[k] || {}); row[sb2.dataset.mo2] = !row[sb2.dataset.mo2]; log[k] = row; update("meta","money",{saveLog:log}); if (row[sb2.dataset.mo2]) pop("kept ✓", sb2); return; }
   const pb = e.target.closest("[data-pot]"); if (pb){ const m = get("meta","money") || {}, pots = Object.assign({}, m.pots2 || {}); pots[pb.dataset.pot] = Math.max(0, (pots[pb.dataset.pot] || 0) + Number(pb.dataset.amt)); update("meta","money",{pots2:pots}); return; }
@@ -480,7 +477,7 @@ const inText = n => n === 0 ? "Today" : n === 1 ? "Tomorrow" : "in " + n + " day
 const inShort = n => n === 0 ? "Today" : n === 1 ? "Tmrw" : n < 7 ? new Date(Date.now() + n*86400000).toLocaleDateString("en-GB",{weekday:"short"}) : n + " days";
 function renderPeople(){
   const ps = people();
-  $("pe-next").innerHTML = ps.slice(0,3).map(p => { const ideas = openGifts().filter(g => g.who.toLowerCase() === p.name.toLowerCase());
+  $("pe-next").innerHTML = ps.slice(0,5).map(p => { const ideas = openGifts().filter(g => g.who.toLowerCase() === p.name.toLowerCase());
     return '<div class="row"><span class="t">' + esc(p.name) + '<span>birthday' + (ideas.length ? " · idea: " + esc(ideas[0].t) : p.days <= 14 ? " · a message or a gift?" : "") + '</span></span><span class="' + (p.days <= 7 ? "warn" : "small") + '">' + esc(p.days < 7 ? inShort(p.days) + " " + p.next.getDate() : p.next.getDate() + " " + MONTHS[p.next.getMonth()].slice(0,3)) + '</span></div>'; }).join("") || '<div class="empty">Birthdays show here after the first sync.</div>';
   const lastCall = all("wins").filter(w => w.key === "call" || w.key === "text" || w.key === "family").sort((a,c) => String(c.at).localeCompare(String(a.at)))[0];
   $("pe-callLast").textContent = lastCall ? "last one logged " + fmt(lastCall.date) : "nothing logged yet";
@@ -498,7 +495,8 @@ function renderPeople(){
     ((dt.where || []).length ? '<div class="lab" style="margin:8px 0 4px">Where this week</div>' + dt.where.map(x => '<div class="row"><span class="t">' + esc(x.t) + '<span>' + esc(x.w || "") + '</span></span></div>').join("") : "") +
     ((dt.rules || []).length ? '<details style="margin-top:8px"><summary class="lab" style="margin:0"><span>Your rules</span><span>▾</span></summary>' + dt.rules.map(r => '<div class="small" style="padding:4px 0">· ' + esc(r) + '</div>').join("") + ((dt.why || []).length ? '<div class="lab" style="margin:10px 0 4px">Why</div>' + dt.why.map(r => '<div class="small" style="padding:4px 0">' + esc(r) + '</div>').join("") : "") + '</details>' : "");
   const ws = all("wish"), want = ws.filter(w => w.state === "want").length, bought = ws.filter(w => w.state === "bought").length;
-  $("pe-wish").innerHTML = '<div class="hd"><span>Wishlist</span><span>›</span></div><div><div class="n">' + want + ' wanted</div><div class="small">' + ws.length + ' things · ' + bought + ' bought</div></div>';
+  const pics = ws.filter(w => w.state === "want" && w.img && !w.saving).slice(0,4);
+  $("pe-wish").innerHTML = '<div class="hd"><span>Wishlist</span><span>' + want + ' wanted ›</span></div><div class="wpics">' + pics.map(w => '<img src="' + esc(w.img) + '" alt="" loading="lazy">').join("") + '</div>';
   let last = -1;
   $("bday-list").innerHTML = ps.map(p => { const mo = p.next.getMonth(), head = mo !== last ? '<div class="mon">' + MONTHS[mo] + '</div>' : ""; last = mo;
     return head + '<div class="bday' + (p.days <= 14 && !p.gentle ? " soon" : "") + '"><span class="d">' + p.d + '</span><span>' + esc(p.name) + '</span><span class="in">' + esc(inText(p.days)) + '<button class="x" data-bdel="' + esc(p.name) + '" aria-label="Remove ' + esc(p.name) + '">×</button></span></div>'; }).join("");
@@ -528,13 +526,18 @@ $("bday-form").addEventListener("submit", e => { e.preventDefault();
 /* ---------- Wishlist ---------- */
 let wiCat = "Wanted";
 function renderWish(){
-  const ws = all("wish").filter(w => !BIG.includes(w.cat)).sort((a,b) => (a.order ?? 999) - (b.order ?? 999));
+  const ws = all("wish").filter(w => !w.saving).sort((a,b) => (a.order ?? 999) - (b.order ?? 999));
   const cats = ["Wanted","Drops"].concat([...new Set(ws.map(w => w.cat).filter(c => c && c !== "Drops"))]).concat(["Bought","Passed"]);
   $("wi-count").textContent = ws.filter(w => w.state === "bought").length + " bought";
   $("wi-cats").innerHTML = cats.map(c => '<button class="chip sm' + (c === wiCat ? " on" : "") + '" data-wcat="' + esc(c) + '">' + esc(c) + '</button>').join("");
   const pickList = wiCat === "Wanted" ? ws.filter(w => w.state === "want") : wiCat === "Bought" ? ws.filter(w => w.state === "bought") : wiCat === "Passed" ? ws.filter(w => w.state === "pass") : ws.filter(w => w.cat === wiCat && w.state !== "pass");
   if (wiCat === "Drops") pickList.sort((a,b) => String(b.at).localeCompare(String(a.at)));
-  $("wi-list").innerHTML = pickList.length ? '<div class="shelf">' + pickList.map(w => '<div class="item"><a class="ph" ' + (w.url ? 'href="' + esc(w.url) + '" target="_blank" rel="noopener"' : "") + '>' + (w.img ? '<img src="' + esc(w.img) + '" alt="" loading="lazy">' : '<span>' + esc(w.brand || w.name) + '</span>') + (w.tag ? '<em>' + esc(w.tag) + '</em>' : "") + '</a><span class="br">' + esc(w.brand || "") + '</span><b>' + esc(w.name) + '</b><span class="s">' + esc([w.pr, w.why].filter(Boolean).join(" · ")) + '</span><div class="st">' + ["want","bought","pass"].map(s => '<button class="' + (w.state === s ? "sel" : "") + '" data-ws="' + esc(w.id) + '" data-st="' + s + '">' + ({want:"Want",bought:"Bought",pass:"Pass"})[s] + '</button>').join("") + '</div>' + (w.cat === "Drops" ? '<button class="x" data-wdel="' + esc(w.id) + '" aria-label="Delete">×</button>' : "") + '</div>').join("") + '</div>' : '<div class="empty" style="padding:0 6px">Nothing here yet.</div>';
+  $("wi-list").innerHTML = pickList.length ? '<section class="panel">' + pickList.map(w => '<div class="goal wrow">' + (w.img ? '<a href="' + esc(w.url || "#") + '" target="_blank" rel="noopener"><img src="' + esc(w.img) + '" alt="" loading="lazy"></a>' : '<span class="gph"></span>') + '<span class="t"><b>' + esc(w.name) + '</b><span>' + esc([w.brand, w.pr || (w.price ? eur(w.price) : "")].filter(Boolean).join(" · ")) + '</span>' + (w.why ? '<span>' + esc(w.why) + '</span>' : "") + '<span class="chips" style="margin-top:6px">' + ["want","bought","pass"].map(st => '<button class="chip sm' + (w.state === st ? " on" : "") + '" data-ws="' + esc(w.id) + '" data-st="' + st + '">' + ({want:"Want",bought:"Bought",pass:"Pass"})[st] + '</button>').join("") + '</span></span>' + (w.cat === "Drops" ? '<button class="x" data-wdel="' + esc(w.id) + '" aria-label="Delete">×</button>' : '<span></span>') + '</div>').join("") + '</section>' : '<div class="empty" style="padding:0 6px">Nothing here yet.</div>';
+  const m = get("meta","money") || {}, big = all("wish").filter(w => w.saving && w.state !== "bought").sort((a,b) => (b.price||0) - (a.price||0));
+  $("wi-goals").hidden = !big.length;
+  $("wi-goals").innerHTML = '<div class="lab"><span>Saving for</span><span>tap + as you put money aside</span></div>' + big.map(w => { const pot = (m.pots2 || {})[w.id] || 0, pr = w.price || num(w.pr);
+    return '<div class="goal">' + (w.img ? '<img src="' + esc(w.img) + '" alt="">' : '<span class="gph"></span>') + '<span class="t"><b>' + esc(w.name) + '</b><span>' + esc(w.brand || w.cat) + (pr ? " · " + eur(pr) : "") + '</span><span class="meter sm"><i style="width:' + (pr ? Math.min(100, Math.round(pot/pr*100)) : 0) + '%"></i></span><span class="chips" style="margin-top:6px"><button class="chip sm" data-pot="' + esc(w.id) + '" data-amt="100">+€100</button><button class="chip sm" data-pot="' + esc(w.id) + '" data-amt="500">+€500</button>' + (pot ? '<button class="chip sm" data-pot="' + esc(w.id) + '" data-amt="-100">−€100</button>' : "") + '</span></span><span class="small">' + (pot ? eur(pot) + (pr ? "<br>" + Math.round(pot/pr*100) + "%" : "") : "start") + '</span></div>'; }).join("");
+  $("wi-goals").hidden = !big.length;
 }
 document.addEventListener("click", e => {
   const c = e.target.closest("[data-wcat]"); if (c){ wiCat = c.dataset.wcat; render(); return; }

@@ -14,7 +14,7 @@
 <link rel="icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=10">
+<link rel="stylesheet" href="app.css?v=11">
 </head>
 <body>
 <div class="sync" id="sync" hidden></div>
@@ -105,14 +105,13 @@
   <section class="panel"><div class="lab"><span>Where it goes · each month</span><span id="mo-burn"></span></div><div id="mo-parts"></div><div class="toast" id="mo-toast" aria-live="polite"></div></section>
   <section class="panel soon" id="mo-soon"></section>
   <section class="panel save" id="mo-save"></section>
-  <section class="panel" id="mo-goals"></section>
 </main>
 
 <!-- THINK -->
 <main class="view" id="v-think" hidden>
   <div class="top"><span class="brand">Think</span></div>
   <section class="panel">
-    <div class="cap"><input class="field" id="think-text" placeholder="What's on your mind?" aria-label="New thought" enterkeyhint="send"><button class="btn solid" id="think-save">Save</button></div>
+    <textarea class="field bigcap" id="think-text" rows="3" placeholder="What's on your mind?" aria-label="New thought"></textarea><button class="btn solid" id="think-save" style="width:100%;margin-top:8px">Save</button>
     <div class="toast" id="think-toast" aria-live="polite"></div>
   </section>
     <section class="panel"><div class="lab"><span>Your web</span><span class="small">tap a theme</span></div><div id="think-web"></div><div id="think-open"></div></section>
@@ -125,9 +124,10 @@
 <!-- PEOPLE -->
 <main class="view" id="v-people" hidden>
   <div class="top"><span class="brand">People</span></div>
-  <section class="panel love" id="pe-dating"></section>
-  <section class="panel"><div class="lab"><span>Birthdays</span><span>next 3</span></div><div id="pe-next"></div>
-    <details style="margin-top:8px"><summary class="lab" style="margin:0"><span>All birthdays · add one</span><span>▾</span></summary>
+  <section class="panel callcard"><div><div class="focus-s">Call or text someone you love</div><div class="small" id="pe-callLast"></div></div><div class="stack"><button class="btn solid sm" id="pe-called">Called +10</button><button class="btn sm" id="pe-texted">Texted +5</button></div></section>
+  <div class="toast" id="pe-callToast" aria-live="polite" style="margin:-4px 6px 0"></div>
+  <section class="panel"><div class="lab"><span>Birthdays</span></div><div id="pe-next"></div>
+    <details style="margin-top:8px"><summary class="lab" style="margin:0"><span>See more · add one</span><span>▾</span></summary>
     <form class="g" id="bday-form" autocomplete="off" style="grid-template-columns:minmax(0,1fr) 70px 86px;margin-top:10px">
       <input class="field" id="bday-name" placeholder="Name" aria-label="Name">
       <select class="field" id="bday-day" aria-label="Day"></select>
@@ -137,8 +137,8 @@
     <div class="toast" id="bday-toast" aria-live="polite"></div>
     <div id="bday-list"></div>
   </details></section>
-  <section class="panel callcard"><div><div class="focus-s">Call or text someone you love</div><div class="small" id="pe-callLast"></div></div><div class="stack"><button class="btn solid sm" id="pe-called">Called +10</button><button class="btn sm" id="pe-texted">Texted +5</button></div></section>
-  <div class="toast" id="pe-callToast" aria-live="polite" style="margin:-4px 6px 0"></div>
+  <a class="tile2 wishbig" href="#wish" id="pe-wish"></a>
+  <section class="panel love" id="pe-dating"></section>
   <section class="panel">
     <div class="lab"><span id="gifts-openLab">Gifts to get</span><span>Bought = +20</span></div>
     <div id="gifts-open"></div>
@@ -150,7 +150,6 @@
     <div class="toast" id="gifts-toast" aria-live="polite"></div>
     <details id="gifts-doneWrap" style="margin-top:6px"><summary class="lab" style="margin:0"><span>Done</span><span>▾</span></summary><div id="gifts-done"></div></details>
   </section>
-  <a class="tile2" href="#wish" id="pe-wish"></a>
 </main>
 
 <!-- WISHLIST -->
@@ -161,7 +160,8 @@
     <div class="toast" id="wi-toast" aria-live="polite"></div>
   </section>
   <div class="chips scroll" id="wi-cats"></div>
-  <div id="wi-list" style="display:flex;flex-direction:column;gap:12px"></div>
+  <div id="wi-list"></div>
+  <section class="panel save" id="wi-goals"></section>
 </main>
 
 <!-- ADMIN -->
@@ -202,6 +202,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
-<script src="app.js?v=10"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>
