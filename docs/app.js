@@ -309,7 +309,7 @@ function renderBody(){
   $("body-chart").innerHTML = spark(pts, {label:strEx + " weight over time", empty:"Log " + esc(strEx || "an exercise") + " twice and your strength line appears here."});
   $("body-strPick").innerHTML = names.map(n => '<button class="chip sm' + (n === strEx ? " on" : "") + '" data-str="' + esc(n) + '">' + esc(n) + '</button>').join("");
   // Fuel
-  const F = [{k:"breakfast",t:"Breakfast"},{k:"lunch",t:"Lunch"},{k:"dinner",t:"Dinner"},{k:"shake",t:"Shake / yogurt"}];
+  const F = [{k:"breakfast",t:"Breakfast"},{k:"lunch",t:"Lunch"},{k:"dinner",t:"Dinner"},{k:"shake",t:"Protein yogurt"},{k:"creatine",t:"Creatine 10 g"}];
   const td = get("fuel", todayIso()) || {};
   $("body-fuelN").textContent = "Food today · " + F.filter(f => td[f.k]).length + " of " + F.length;
   $("body-fuel").innerHTML = F.map(f => '<button class="chip sm' + (td[f.k] ? " on" : "") + '" data-fuel="' + esc(f.k) + '">' + (td[f.k] ? "✓ " : "") + esc(f.t) + '</button>').join("");
