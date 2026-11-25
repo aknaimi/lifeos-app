@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """What Anton wrote and did in Life OS, as one short read for Claude.
 
-Run:  ~/Desktop/Personal/lifeos-app/.venv/bin/python ~/Desktop/Personal/lifeos-app/tools/digest.py [--days 7]
+Run:  ~/Desktop/Personal/lifeos-app/.venv/bin/python ~/Desktop/Personal/lifeos-app/tools/life_digest.py [--days 7]
 
 Prints markdown to the screen, newest day first: his Tonight lines (wins, grateful) in his
 own words, his notes (thoughts), the wins he tapped, wake time, food and gym. Then a totals
