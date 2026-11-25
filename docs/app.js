@@ -8,9 +8,12 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const pad = n => String(n).padStart(2,"0");
 const localIso = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
-const todayIso = () => localIso(new Date());
+// The day turns over at 03:00, not midnight, so a 1 AM log still counts for the night before.
+const DAY_START_H = 3;
+const dayNow = () => new Date(Date.now() - DAY_START_H*3600000);
+const todayIso = () => localIso(dayNow());
 const nowIso = () => new Date().toISOString();
-function mondayIso(){ const d = new Date(); d.setDate(d.getDate() - ((d.getDay()+6)%7)); return localIso(d); }
+function mondayIso(){ const d = dayNow(); d.setDate(d.getDate() - ((d.getDay()+6)%7)); return localIso(d); }
 const fmt = d => { try{ return new Date(String(d).length === 10 ? d+"T12:00:00" : d).toLocaleDateString("en-GB",{day:"numeric",month:"short"}); }catch(e){ return ""; } };
 const dayName = d => new Date(d+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
 const rid = () => Math.random().toString(36).slice(2,12) + Date.now().toString(36);
@@ -114,7 +117,7 @@ function logWin(w, toastEl, el){
 function capture(text, toastEl){
   text = String(text || "").trim(); if (!text) return false;
   add("thoughts", {t:text, at:nowIso(), date:todayIso(), thread:"", src:"app"});
-  toastEl.textContent = "Saved." + (new Date().getHours() >= 21 ? " It's past 21:00. Phone off?" : "");
+  toastEl.textContent = "Saved." + (new Date().getHours() >= 21 ? " Past 21:00. Phone off, alarm clock on?" : "");
   return true;
 }
 
@@ -128,9 +131,11 @@ const MORE_WINS = [
   {key:"sauna",label:"Sauna",xp:10},{key:"family",label:"Called family",xp:10},{key:"giftsent",label:"Sent a gift",xp:20},
   {key:"prep",label:"Cooked or prep day",xp:10},{key:"pen",label:"Wrote with a pen",xp:10},{key:"learn",label:"Learned something new",xp:10},
   {key:"museum",label:"Museum or gallery",xp:20},{key:"kind",label:"Was kind to myself",xp:10}];
+// Activities that live on the photo tiles; their quick-log chips are hidden so they can't score twice.
+const TILE_WIN = {padel:"padel", read:"read", walk:"phoneless"}, ON_TILES = ["padel","read","phoneless"];
 const MAIN8 = ["gym","padel","opener","date","phoneoff","spont","event","journal"], SKIP = ["pocket3","admin","gift"];
-function winButtons(){ const m = get("meta","winButtons"); if (m && m.items) return m.items; const t = home().xpTable || []; return MAIN8.map(k => t.find(w => w.key === k)).filter(Boolean).map(w => ({key:w.key, label:w.key === "gym" ? "Gym" : w.key === "phoneoff" ? "Phone off 21:00" : w.label, xp:w.key === "gym" ? 20 : w.xp})); }
-function moreWins(){ const mine = winButtons().map(w => w.key), t = (home().xpTable || []).filter(w => !SKIP.includes(w.key)).map(w => ({key:w.key, label:w.label, xp:w.xp})); const pool = t.concat(MORE_WINS.filter(w => !t.find(x => x.key === w.key))); return pool.filter(w => !mine.includes(w.key)); }
+function winButtons(){ const m = get("meta","winButtons"); if (m && m.items) return m.items.filter(w => !ON_TILES.includes(w.key)); const t = home().xpTable || []; return MAIN8.filter(k => !ON_TILES.includes(k)).map(k => t.find(w => w.key === k)).filter(Boolean).map(w => ({key:w.key, label:w.key === "gym" ? "Gym" : w.key === "phoneoff" ? "Phone off at 9, alarm clock on ⏰" : w.label, xp:w.key === "gym" ? 20 : w.xp})); }
+function moreWins(){ const mine = winButtons().map(w => w.key), t = (home().xpTable || []).filter(w => !SKIP.includes(w.key)).map(w => ({key:w.key, label:w.label, xp:w.xp})); const pool = t.concat(MORE_WINS.filter(w => !t.find(x => x.key === w.key))); return pool.filter(w => !mine.includes(w.key) && !ON_TILES.includes(w.key)); }
 function saveButtons(items){ set("meta","winButtons",{items, updated:todayIso()}); }
 
 function levelInfo(xp){
@@ -144,7 +149,7 @@ function wakeUntil(){ return home().wakeUntil || ""; }
 
 function renderHome(){
   const h = home(), xp = xpNow(), {levels, cur, nxt} = levelInfo(xp), top = levels[levels.length-1] || {xp:1000};
-  $("home-date").textContent = new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"short"});
+  $("home-date").textContent = dayNow().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"short"});
   $("home-xp").textContent = Math.round(xp);
   const pct = nxt ? Math.max(0, Math.min(100, Math.round((xp - cur.xp)/(nxt.xp - cur.xp)*100))) : 100;
   $("home-ring").style.setProperty("--p", pct + "%");
@@ -215,7 +220,7 @@ document.addEventListener("click", e => {
   if (t){ const mon = mondayIso(), wk = Object.assign({}, get("offline", mon) || {}), d = (wk.done || []).slice(), at = d.indexOf(t.dataset.off), wins = Object.assign({}, wk.wins || {});
     const r = ((get("meta","offline") || {}).recharges || []).find(x => x.id === t.dataset.off) || {name:t.dataset.off};
     if (at >= 0){ d.splice(at,1); if (wins[t.dataset.off]) del("wins", wins[t.dataset.off]); delete wins[t.dataset.off]; $("home-offToast").textContent = ""; }
-    else { d.push(t.dataset.off); wins[t.dataset.off] = logWin({key:"offline", label:"Offline · " + r.name, xp:10}, null, t); $("home-offToast").textContent = "Nice. +10."; }
+    else { d.push(t.dataset.off); wins[t.dataset.off] = logWin({key:TILE_WIN[t.dataset.off] || "offline", label:r.name, xp:10}, null, t); $("home-offToast").textContent = "Nice. +10."; }
     wk.done = d; wk.wins = wins; set("offline", mon, wk); return; }
   const wk = e.target.closest("#home-wake");
   if (wk){ const d = todayIso(), cur = get("wake", d), n = new Date();
@@ -224,7 +229,7 @@ document.addEventListener("click", e => {
   const buy = e.target.closest("[data-buy]");
   if (buy){ const g = get("giftIdeas", buy.dataset.buy); if (!g) return; const id = buy.dataset.buy, now = nowIso();
     update("giftIdeas", id, {bought:true, boughtAt:now});
-    const wid = add("wins", {key:"gift", label:"Gift · " + g.who, xp:20, date:now.slice(0,10), at:now, synced:false});
+    const wid = add("wins", {key:"gift", label:"Gift · " + g.who, xp:20, date:todayIso(), at:now, synced:false});
     toast($("gifts-toast"), "Done: " + esc(g.who) + ". +20 XP", () => { del("wins", wid); update("giftIdeas", id, {bought:false}); }); return; }
   const gx = e.target.closest("[data-gdel]");
   if (gx){ const id = gx.dataset.gdel, keep = get("giftIdeas", id); del("giftIdeas", id); toast($("gifts-toast"), "Deleted.", () => set("giftIdeas", id, keep)); return; }
@@ -282,7 +287,7 @@ $("tn-done").addEventListener("click", () => {
 
 /* ---------- Health ---------- */
 let pick = null, draft = {}, strEx = null;
-function weekDays(){ const m = new Date(); m.setDate(m.getDate() - ((m.getDay()+6)%7)); return [...Array(7)].map((_,i) => { const d = new Date(m); d.setDate(m.getDate()+i); return d; }); }
+function weekDays(){ const m = dayNow(); m.setDate(m.getDate() - ((m.getDay()+6)%7)); return [...Array(7)].map((_,i) => { const d = new Date(m); d.setDate(m.getDate()+i); return d; }); }
 function lastFor(n){ const sets = all("sets").sort((a,b) => String(b.at).localeCompare(String(a.at))); for (const s of sets){ const e = (s.ex||[]).find(x => x.n === n && x.kg != null); if (e) return e; } return null; }
 function spark(pts, opts){
   if (pts.length < 2) return '<div class="empty" style="padding:14px 0">' + (opts.empty || "Log twice and your line appears here.") + '</div>';
