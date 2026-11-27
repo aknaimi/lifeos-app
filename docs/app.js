@@ -409,6 +409,7 @@ function renderRun(){ const r = get("meta","run"); if (!r || !r.plan){ $("body-r
     w.runs.map(x => { const d = runs.find(y => y.run === x.id);
       return '<div class="step' + (d ? " done" : "") + '"><button class="tick' + (d ? " on" : "") + '" data-run="' + esc(x.id) + '" aria-label="' + (d ? "Undo: " : "Done: ") + esc(x.t) + '">' + (d ? "✓" : "") + '</button><span class="t"><b style="font-weight:500">' + esc(x.t) + '</b><span>' + esc(fill(x.d)) + '</span>' +
         (x.tt || x.race ? '<span class="cap" style="margin-top:6px"><input class="field" data-rtime="' + (x.race ? "race" : "tt5k") + '" placeholder="' + (x.race ? "Race time, like 52:30" : "Your 5K time, like 24:40") + '" inputmode="numeric" value="' + esc(x.race ? (r.raceTime || "") : (r.tt5k || "")) + '" aria-label="Time"><button class="btn solid" data-rsave="' + (x.race ? "race" : "tt5k") + '">Save</button></span>' : "") + '</span><span></span></div>'; }).join("") +
+    '<button class="btn" data-runx="1" style="width:100%;margin-top:10px">+ Extra run · +20</button>' +
     '<details style="margin-top:8px"><summary class="small">Whole plan ▾</summary>' + r.plan.map((wk,i) => '<div class="small" style="margin-top:6px"><b style="color:var(--fg);font-weight:500">Week ' + (i+1) + ' · ' + fmt(wk.mon) + '</b><br>' + wk.runs.map(x => (runs.some(y => y.run === x.id) ? "✓ " : "") + esc(x.t)).join(" · ") + '</div>').join("") +
     '<div class="small" style="margin-top:8px">' + esc(r.rule || "") + '</div></details>';
 }
@@ -416,6 +417,7 @@ document.addEventListener("click", e => {
   const t = e.target.closest("[data-run]");
   if (t){ const r = get("meta","run"), x = r.plan.flatMap(w => w.runs).find(y => y.id === t.dataset.run), d = all("wins").find(y => y.key === "run" && y.run === x.id);
     if (d){ del("wins", d.id); return; } add("wins", {key:"run", label:"Run · " + x.t, run:x.id, xp:20, date:todayIso(), at:nowIso(), synced:false}); pop(20, t); return; }
+  if (e.target.closest("[data-runx]")){ const b = e.target.closest("[data-runx]"), wid = add("wins", {key:"run", label:"Run · extra", xp:20, date:todayIso(), at:nowIso(), synced:false}); pop(20, b); toast($("body-toast"), "Extra run logged. +20 XP", () => del("wins", wid)); return; }
   const sv = e.target.closest("[data-rsave]");
   if (sv){ const k = sv.dataset.rsave, v = (document.querySelector('[data-rtime="' + k + '"]') || {}).value || "";
     if (!secOf(v)){ toast($("body-toast"), "Type it as minutes:seconds, like 24:40."); return; }
