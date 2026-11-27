@@ -14,7 +14,7 @@
 <link rel="icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=14">
+<link rel="stylesheet" href="app.css?v=15">
 </head>
 <body>
 <div class="sync" id="sync" hidden></div>
@@ -56,6 +56,8 @@
     <div class="toast" id="home-winToast" aria-live="polite"></div>
   </section>
 
+  <section class="panel nw" id="home-nw"></section>
+  <section class="panel" id="home-wq" hidden></section>
   <section class="panel">
     <div class="lab"><span>For me · tap = +10</span><button class="link" id="home-editOff">Edit</button></div>
     <div id="home-strip"></div><div class="toast" id="home-offToast" aria-live="polite"></div>
@@ -84,7 +86,7 @@
     <div class="lab">Pick today's session</div><div class="grid3" id="body-picks"></div>
     <div id="body-ex" style="margin-top:12px"></div>
     <div class="small" style="margin-top:8px">Same as last time? Tap ✓. Beat it by one rep or 2.5 kg: type it, it turns green.</div>
-    <div class="grid2" style="margin-top:12px"><button class="btn solid" id="body-finish">Finish session · +20</button><button class="btn" id="body-padel">Played padel · +10</button></div>
+    <button class="btn solid" id="body-finish" style="width:100%;margin-top:12px">Finish session · +20</button>
     <div class="toast" id="body-toast" aria-live="polite"></div>
   </section>
   <section class="panel" hidden><div class="lab"><span>Getting stronger</span><span id="body-strN"></span></div><div id="body-chart"></div><div class="chips" id="body-strPick" style="margin-top:8px"></div></section>
@@ -123,7 +125,6 @@
   <section class="panel" id="think-obs"></section>
   <section class="panel" id="think-looseWrap" hidden><div class="lab"><span>New notes</span><span>sorted by Claude</span></div><div id="think-loose"></div></section>
   <section class="panel" id="think-mal"></section>
-  <section class="panel"><details><summary class="lab" style="margin:0"><span id="think-sLab">Side projects</span><span>▾</span></summary><div id="think-side" style="margin-top:6px"></div></details></section>
 </main>
 
 <!-- PEOPLE -->
@@ -144,7 +145,6 @@
     <div id="bday-list"></div>
   </details></section>
   <a class="tile2 wishbig" href="#wish" id="pe-wish"></a>
-  <section class="panel love" id="pe-dating"></section>
   <section class="panel">
     <div class="lab"><span id="gifts-openLab">Gifts to get</span><span>Bought = +20</span></div>
     <div id="gifts-open"></div>
@@ -173,16 +173,16 @@
 <!-- ADMIN -->
 <main class="view" id="v-admin" hidden>
   <div class="top"><span class="brand">To do</span><span class="small" id="admin-count"></span></div>
+  <section class="panel urgent"><div hidden><i id="admin-bar"></i></div><div id="admin-next"></div></section>
+  <section class="panel"><div id="admin-road"></div>
+    <details class="addfold"><summary class="btn" style="width:100%;margin-top:10px;list-style:none;text-align:center">+ Add a to-do</summary><form id="admin-form" autocomplete="off" style="margin-top:10px"><div class="g"><input class="field" id="admin-text" placeholder="What needs doing?" aria-label="New admin task"><button class="btn solid" type="submit">Add</button></div>
+      <div class="g" style="margin-top:8px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)"><select class="field" id="admin-g" aria-label="Group"></select><input class="field" id="admin-due" type="date" aria-label="Due date (optional)"></div>
+      <select class="field" id="admin-every" aria-label="Repeats" style="margin-top:8px;width:100%"><option value="">Doesn't repeat</option><option value="7">Every week</option><option value="14">Every 2 weeks</option><option value="28">Every 4 weeks</option></select></form></details>
+    <div class="toast" id="admin-toast" aria-live="polite"></div></section>
   <section class="panel"><div class="lab"><span id="shop-lab">Shopping list</span></div>
     <form class="g" id="shop-form" autocomplete="off"><input class="field" id="shop-t" placeholder="Add, commas for several" aria-label="Add to shopping list" enterkeyhint="done"><button class="btn solid" type="submit">Add</button></form>
     <div id="shop-list" style="margin-top:6px"></div><div id="shop-usual"></div>
   </section>
-  <section class="panel urgent"><div class="bar" style="margin:0 0 10px"><i id="admin-bar"></i></div><div id="admin-next"></div></section>
-  <section class="panel"><div class="lab"><span>Everything else</span><span>tap a group</span></div><div id="admin-road"></div>
-    <form id="admin-form" autocomplete="off" style="margin-top:12px"><div class="g"><input class="field" id="admin-text" placeholder="Add an admin task" aria-label="New admin task"><button class="btn solid" type="submit">Add</button></div>
-      <div class="g" style="margin-top:8px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)"><select class="field" id="admin-g" aria-label="Group"></select><input class="field" id="admin-due" type="date" aria-label="Due date (optional)"></div>
-      <select class="field" id="admin-every" aria-label="Repeats" style="margin-top:8px;width:100%"><option value="">Doesn't repeat</option><option value="7">Every week</option><option value="14">Every 2 weeks</option><option value="30">Every month</option></select></form>
-    <div class="toast" id="admin-toast" aria-live="polite"></div></section>
   <section class="panel"><details><summary class="lab" style="margin:0">Done ▾</summary><div id="admin-done" style="margin-top:8px"></div></details></section>
 </main>
 
@@ -239,6 +239,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
-<script src="app.js?v=15"></script>
+<script src="app.js?v=16"></script>
 </body>
 </html>

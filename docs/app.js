@@ -117,13 +117,23 @@ function logWin(w, toastEl, el){
 function capture(text, toastEl){
   text = String(text || "").trim(); if (!text) return false;
   add("thoughts", {t:text, at:nowIso(), date:todayIso(), thread:"", src:"app"});
-  toastEl.textContent = "Saved." + (new Date().getHours() >= 21 ? " Past 21:00. Phone off, alarm clock on?" : "");
+  toastEl.textContent = "Saved. It shows under New notes; pick a theme, or Saturday's /life files it and reads it with the rest." + (new Date().getHours() >= 21 ? " Past 21:00. Phone off, alarm clock on?" : "");
   return true;
 }
 
 /* ---------- Home ---------- */
 const home = () => get("meta","home") || {};
 function xpNow(){ const pending = all("wins").filter(w => !w.synced).reduce((a,w) => a + (Number(w.xp)||0), 0); return (Number(home().xp)||0) + pending; }
+// m:{k, n} on a quest or observation: the app counts this week live, so the line never goes stale
+function weekCount(k){ const isos = weekDays().map(localIso).filter(d => d <= todayIso()), W = all("wins").filter(w => isos.includes(w.date));
+  if (k === "wake") return isos.filter(d => get("wake", d)).length;
+  if (k === "tonight") return isos.filter(d => (get("tonight", d) || {}).done).length;
+  if (k === "breath") return isos.filter(d => ((get("daily", d) || {}).breath || 0) >= 1).length;
+  if (k === "gym") return W.filter(w => w.key === "gym" || w.key === "padel").length;
+  if (k === "sessions") return W.filter(w => w.key === "gym" || w.key === "padel" || w.key === "run").length;
+  if (k.startsWith("hab:")) return isos.filter(d => ((get("daily", d) || {}).done || []).includes(k.slice(4))).length;
+  return W.filter(w => w.key === k).length; }
+const liveTxt = m => m && m.k ? weekCount(m.k) + " of " + (m.n || "?") + " this week" : "";
 function questsNow(){ const h = home(); let q = h.quests || null; if (h.questsNext && h.questsNext.week && mondayIso() >= h.questsNext.week) q = h.questsNext; return q; }
 const MORE_WINS = [
   {key:"read",label:"Read 20 pages",xp:10},{key:"post",label:"Posted on X or LinkedIn",xp:20},{key:"nidra",label:"Yoga Nidra",xp:10},
@@ -171,12 +181,21 @@ function renderHome(){
   const dayN = done.includes(todayIso()) ? done.length : done.length + 1;
   $("home-tonight").innerHTML = '<div class="lab"><span>Tonight' + (new Date().getHours() < 18 ? " · from 18:00" : "") + '</span><span>day ' + Math.min(dayN,30) + ' of 30</span></div><div class="focus-s">' + (td.done ? "Saved tonight · +" + tdx : "Today's wins, no matter how small") + '</div><div class="small">' + (td.done ? wn + ' wins · ' + gn + ' grateful · tap to add' : '5 wins · 3 grateful · +2 a line')  + '</div>';
 
+  // Naimi Wisdom: one direct block (27 Nov 2026: monthly to-dos + ideas, not a list, nothing flashing)
+  const nm = todayIso().slice(0,7), nwd = get("nw", nm) || {}, NWT = [["upload","Upload this month's photos and footage to Drive or the MacBook drop zone"],["friends","Send your latest video to 3 friends, ask for one note each"]], nwNext = NWT.find(x => !nwd[x[0]]), nIdeas = all("nwIdeas").length;
+  $("home-nw").innerHTML = '<div class="nwhd"><span>Naimi Wisdom</span><span class="small">' + NWT.filter(x => nwd[x[0]]).length + ' of 2 this month' + (nIdeas ? " · " + nIdeas + " idea" + (nIdeas > 1 ? "s" : "") : "") + '</span></div>' +
+    (nwNext ? '<button class="nwnext" data-nwdo="' + nwNext[0] + '"><span class="c"></span><span>' + esc(nwNext[1]) + '</span></button>' : '<div class="small" style="margin:6px 0">Both done this month ✓</div>') +
+    '<form class="nwidea" id="nw-form" autocomplete="off"><input class="field" id="nw-idea" placeholder="Video idea, one line" aria-label="Video idea"><button class="btn sm" type="submit">Add</button></form>';
+  // Question of the week on Home
+  const wq = weekQ(); $("home-wq").hidden = !wq || !!wq.ans; if (wq && !wq.ans) $("home-wq").innerHTML = '<div class="lab"><span>This week\'s question</span></div>' + qBlock(wq);
   // Out there: the event he's going to, else the best pick
   const ev = evLive(), ego = ev.find(x => x.going) || ev.find(x => x.best) || ev[0];
   $("home-events").hidden = !ego; if (ego) $("home-events").innerHTML = '<span class="small">' + (ego.going ? "🎯 You're going" : "🎯 Out there this week") + '</span><b>' + esc(ego.t) + '</b><span class="small">' + esc(evDay(ego.start)) + (ev.length > 1 ? " · " + ev.length + " picks ›" : " ›") + '</span>';
   // Daily habits
   const hb = habits(), hd = (get("daily", todayIso()) || {}).done || [], wkIsos = weekDays().map(localIso).filter(d => d <= todayIso());
-  $("home-daily").innerHTML = '<div class="lab"><span>Daily · ' + hb.filter(x => hd.includes(x.id)).length + ' of ' + hb.length + ' today</span><span><button class="link" id="home-breathe">Breathe</button> · <button class="link" id="home-editHabs">Edit</button></span></div><div class="habs">' +
+  const bdone = ((get("daily", todayIso()) || {}).breath || 0) >= 1, bw0 = brWeek();
+  $("home-daily").innerHTML = '<button class="breathebig' + (bdone ? " done" : "") + '" id="home-breathe"><span class="bi">🫁</span><span><b>' + (bdone ? "Breathed today ✓" : "Breathe") + '</b><small>' + (bdone ? "Again any time" : mmss(bw0.target) + " · right after the alarm") + '</small></span><span class="bgo">' + (bdone ? "" : "Start ›") + '</span></button>' +
+    '<div class="lab"><span>Daily · ' + hb.filter(x => hd.includes(x.id)).length + ' of ' + hb.length + ' today</span><button class="link" id="home-editHabs">Edit</button></div><div class="habs">' +
     hb.map(x => { const on = hd.includes(x.id), n = wkIsos.filter(d => ((get("daily", d) || {}).done || []).includes(x.id)).length;
       return '<button class="hab' + (on ? " on" : "") + '" data-hab="' + esc(x.id) + '" aria-pressed="' + on + '"><span class="hc">' + esc(x.em || "•") + '</span><span class="hn">' + esc(x.t) + '</span><span class="hw">' + n + ' of ' + wkIsos.length + '</span></button>'; }).join("") + '</div>';
   // Quests (only this week's; stale ones hide until Saturday)
@@ -184,7 +203,7 @@ function renderHome(){
   const fresh = q && q.week && q.week >= localIso(new Date(new Date(mon+"T12:00:00").getTime() - 6*86400000));
   if (q && q.items && q.items.length && fresh){
     $("home-questLab").innerHTML = "<span>This week's quests · " + qdone.length + " of " + q.items.length + "</span><span>+" + (q.bonus || 50) + " if all</span>";
-    $("home-quests").innerHTML = q.items.map((it,i) => '<button class="quest' + (qdone.includes(i) ? " done" : "") + '" data-q="' + i + '"><span class="c">' + (qdone.includes(i) ? "✓" : "") + '</span><span class="qt">' + esc(it.t) + '</span></button>').join("")
+    $("home-quests").innerHTML = q.items.map((it,i) => '<button class="quest' + (qdone.includes(i) ? " done" : "") + '" data-q="' + i + '"><span class="c">' + (qdone.includes(i) ? "✓" : "") + '</span><span class="qt">' + esc(it.t) + (it.m ? '<small class="qlive">' + liveTxt(it.m) + '</small>' : "") + '</span></button>').join("")
       + (qdone.length === q.items.length && !qd.claimed ? '<button class="btn solid" id="home-claim" style="margin-top:10px">Claim the +' + (q.bonus || 50) + ' bonus</button>' : qd.claimed ? '<div class="small" style="margin-top:8px">Bonus claimed.</div>' : "");
   } else { $("home-questLab").textContent = "This week's quests"; $("home-quests").innerHTML = '<div class="empty">New quests arrive with Saturday\'s /life.</div>'; }
 
@@ -411,7 +430,7 @@ function renderRun(){ const r = get("meta","run"); if (!r || !r.plan){ $("body-r
     (today < w.mon ? '<div class="small" style="margin-bottom:6px">Starts Mon ' + fmt(w.mon) + '.</div>' : "") +
     w.runs.map(x => { const d = runs.find(y => y.run === x.id);
       return '<div class="step' + (d ? " done" : "") + '"><button class="tick' + (d ? " on" : "") + '" data-run="' + esc(x.id) + '" aria-label="' + (d ? "Undo: " : "Done: ") + esc(x.t) + '">' + (d ? "✓" : "") + '</button><span class="t"><b style="font-weight:500">' + esc(x.t) + '</b><span>' + esc(fill(x.d)) + '</span>' +
-        (x.tt || x.race ? '<span class="cap" style="margin-top:6px"><input class="field" data-rtime="' + (x.race ? "race" : "tt5k") + '" placeholder="' + (x.race ? "Race time, like 52:30" : "Your 5K time, like 24:40") + '" inputmode="numeric" value="' + esc(x.race ? (r.raceTime || "") : (r.tt5k || "")) + '" aria-label="Time"><button class="btn solid" data-rsave="' + (x.race ? "race" : "tt5k") + '">Save</button></span>' : "") + '</span><span></span></div>'; }).join("") +
+        (x.tt || x.race ? '<span class="cap" style="margin-top:6px"><input class="field" data-rtime="' + (x.race ? "race" : "tt5k") + '" placeholder="mm:ss" inputmode="numeric" value="' + esc(x.race ? (r.raceTime || "") : (r.tt5k || "")) + '" aria-label="Time"><button class="btn solid" data-rsave="' + (x.race ? "race" : "tt5k") + '">Save</button></span>' : "") + '</span><span></span></div>'; }).join("") +
     '<button class="btn" data-runx="1" style="width:100%;margin-top:10px">+ Extra run · +20</button>' +
     '<details style="margin-top:8px"><summary class="small">Whole plan ▾</summary>' + r.plan.map((wk,i) => '<div class="small" style="margin-top:6px"><b style="color:var(--fg);font-weight:500">Week ' + (i+1) + ' · ' + fmt(wk.mon) + '</b><br>' + wk.runs.map(x => (runs.some(y => y.run === x.id) ? "✓ " : "") + esc(x.t)).join(" · ") + '</div>').join("") +
     '<div class="small" style="margin-top:8px">' + esc(r.rule || "") + '</div></details>';
@@ -475,7 +494,6 @@ $("body-finish").addEventListener("click", () => {
   draft = {}; pick = null; pop(20, $("body-finish"));
   toast($("body-toast"), esc(sel.id) + " logged, " + ex.length + " exercises. +20 XP", () => { del("wins", wid); del("sets", sid); });
 });
-$("body-padel").addEventListener("click", () => logWin({key:"padel", label:"Padel", xp:10}, $("body-toast"), $("body-padel")));
 $("body-saveKg").addEventListener("click", () => { const v = parseFloat($("body-kg").value);
   if (!(v >= 40 && v <= 150)){ $("body-kgToast").textContent = "Enter your weight in kg, like 76.4."; return; }
   set("weights", todayIso(), {date:todayIso(), kg:Math.round(v*10)/10, synced:false}); $("body-kg").value = ""; $("body-kgToast").textContent = "Saved " + (Math.round(v*10)/10) + " kg."; });
@@ -542,6 +560,17 @@ document.addEventListener("click", e => {
   const b = e.target.closest("[data-mo]"); if (b){ moMonth = Number(b.dataset.mo); render(); }
 });
 
+/* ---------- One Malmasson question a week (27 Nov 2026, his pick) ---------- */
+const qslug = q => slug(q).slice(0,40);
+function weekQ(){ const qs = (get("meta","think") || {}).malQ || []; if (!qs.length) return null; const mon = mondayIso();
+  const thisWk = all("answers").find(a => a.week === mon); if (thisWk) return {q:thisWk.q, ans:thisWk};
+  const open = qs.filter(x => !get("answers", qslug(x.q))); if (!open.length) return null;
+  const wk = Math.floor(new Date(mon + "T12:00:00").getTime() / (7*86400000)); return {q:open[wk % open.length].q, from:open[wk % open.length].when}; }
+function qBlock(wq){ return '<div class="wq"><div class="serif wqq">' + esc(wq.q) + '</div>' + (wq.ans ? '<div class="small">Your answer · ' + esc(fmt(wq.ans.at)) + '</div><p class="wqa">' + esc(wq.ans.a) + '</p><div class="small">A new question comes on Monday.</div>'
+  : '<textarea class="field" data-wqa rows="3" placeholder="A few honest lines, any day this week"></textarea><button class="btn solid" data-wqsave="' + esc(wq.q) + '" style="width:100%;margin-top:8px">Save answer · +10</button>' + (wq.from ? '<div class="small" style="margin-top:6px">From Malmasson, ' + esc(wq.from) + '</div>' : "")) + '</div>'; }
+document.addEventListener("click", e => { const b = e.target.closest("[data-wqsave]"); if (!b) return; const ta = b.parentElement.querySelector("[data-wqa]"), a = (ta && ta.value || "").trim(); if (!a) return;
+  const q = b.dataset.wqsave, id = qslug(q); set("answers", id, {q, a, at:nowIso(), week:mondayIso()}); set("wins", "ans-" + id, {key:"answer", label:"Answered: " + q.slice(0,40), xp:10, date:todayIso(), at:nowIso(), synced:false}); pop(10, b); });
+
 /* ---------- Think ---------- */
 let openTheme = null, linkNote = null, openObs = null, thinkObsOpen = false;
 document.addEventListener("toggle", e => { if (e.target.closest && e.target.closest("#think-obs")) thinkObsOpen = e.target.open; }, true);
@@ -550,15 +579,15 @@ function renderThink(){
   const liveT = threads.filter(t => t.state !== "landed" && t.state !== "letgo").sort((a,b) => (a.order||0) - (b.order||0));
   const count = t => thoughts.filter(x => x.thread === t.id).length + (Number(t.base)||0);
   // Malmasson card
-  const mal = meta.malmasson || {}, mq = meta.malQ || [];
-  $("think-mal").hidden = !mq.length && !mal.finished;
-  $("think-mal").innerHTML = '<div class="lab"><span>Questions from Malmasson</span>' + (mal.finished ? '<button class="link" data-copy="finished">Copy this week\'s text</button>' : "") + '</div>' + mq.map(x => '<div class="mq"><span>' + esc(x.q) + '</span><em>' + esc(x.when || "") + '</em></div>').join("");
+  const mal = meta.malmasson || {}, wq = weekQ(), nAns = all("answers").length;
+  $("think-mal").hidden = !wq;
+  $("think-mal").innerHTML = wq ? '<div class="lab"><span>This week\'s question</span><span>' + nAns + ' answered</span></div>' + qBlock(wq) : "";
     ['finished','loose'].filter(k => mal[k]).map(k => '<div class="msg"><div class="small">' + (k === "finished" ? "Ready to send" : "Fill in yourself") + '</div><p>' + esc(mal[k]) + '</p><button class="btn sm" data-copy="' + k + '">Copy</button></div>').join("") + '</details>';
   // At a glance (27 Nov 2026, his ask: Think was too wordy to glance at)
   const obs = meta.observations || [];
   const odKey = String(meta.obsDate || "").replace(/\W/g,""), nxI = obs.findIndex(o => o.kind === "next"), nx = obs[nxI], bn = obs.find(o => o.kind === "bottleneck");
   const nxGot = nx && !!get("wins", "obs-" + odKey + "-" + nxI), age = meta.nextSet ? Math.max(0, Math.round((new Date(todayIso() + "T12:00:00") - new Date(meta.nextSet + "T12:00:00"))/86400000)) : null;
-  const gl = [["Working on", meta.working || home().seasonGoal || ""], ["Bottleneck", bn ? (bn.s || bn.step) : ""]].filter(x => x[1]);
+  const gl = [["Working on", meta.working || home().seasonGoal || ""], ["Bottleneck", bn ? (bn.s || bn.step) + (bn.m ? " · " + liveTxt(bn.m) : "") : ""]].filter(x => x[1]);
   $("think-glance").hidden = !gl.length && !nx;
   $("think-glance").innerHTML = '<div class="lab"><span>At a glance</span><span>' + esc(meta.obsDate || "") + '</span></div>' + gl.map(x => '<div class="gl"><span class="ok">' + x[0] + '</span><span>' + esc(x[1]) + '</span></div>').join("") +
     (nx ? '<button class="gl glnext' + (nxGot ? " done" : "") + '" data-obsstep="' + nxI + '"><span class="ok">Next move</span><span>' + esc(nx.step || nx.s || nx.t) + '<small>' + (nxGot ? "Done ✓ · a new one comes with the next sync" : age == null ? "tap when done · +10" : "set " + (age === 0 ? "today" : age === 1 ? "yesterday" : age + " days ago") + " · tap when done · +10") + '</small></span><span class="c">' + (nxGot ? "✓" : "") + '</span></button>' : "");
@@ -592,9 +621,6 @@ function renderThink(){
   $("think-looseWrap").hidden = !(loose.length || sorted.length);
   $("think-loose").innerHTML = sorted.map(x => '<div class="note">' + esc(x.t) + '<span>' + esc(fmt(x.at)) + '</span><div class="filed">→ <b>' + esc(tTitle(x.thread)) + '</b>' + (x.why ? ' · ' + esc(x.why) : "") + '</div><div class="chips" style="margin-top:6px"><button class="chip sm" data-nok="' + esc(x.id) + '">Right ✓</button><button class="chip sm" data-nundo="' + esc(x.id) + '">Undo</button></div></div>').join("") +
     loose.map(x => '<div class="note">' + esc(x.t) + '<span>' + esc(fmt(x.at)) + '</span><div class="small" style="margin-top:4px">Not sorted yet. Pick a theme, or /life sorts it on Saturday.</div><div class="chips scroll" style="margin-top:6px">' + liveT.map(t => '<button class="chip sm" data-file="' + esc(x.id) + '" data-to="' + esc(t.id) + '">' + esc(t.title) + '</button>').join("") + '</div></div>').join("");
-  const side = (get("meta","side") || {}).projects || [];
-  $("think-sLab").textContent = "Side projects · " + side.filter(p => p.on).length + " on";
-  $("think-side").innerHTML = side.map(p => '<div class="row"' + (p.on ? "" : ' style="opacity:.55"') + '><span class="t"><b style="font-weight:500">' + esc(p.name) + '</b><span>Next: ' + esc(p.next || "") + '</span></span><span class="small">' + esc(p.progress ? p.progress.now + " / " + p.progress.goal : (p.status || "")) + '</span></div>').join("") || '<div class="empty">None yet.</div>';
 }
 $("think-save").addEventListener("click", () => { if (capture($("think-text").value, $("think-toast"))) $("think-text").value = ""; });
 $("think-text").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); $("think-save").click(); } });
@@ -633,6 +659,8 @@ const evDay = iso => new Date(iso).toLocaleDateString("en-GB",{weekday:"short", 
 const evLive = () => { const now = Date.now() - 2*3600000; return all("events").filter(e => e.start && new Date(e.start).getTime() > now).sort((a,b) => String(a.start).localeCompare(String(b.start))); };
 function renderEvents(){ const ev = evLive();
   $("pe-events").innerHTML = '<div class="lab"><span>Out there · next 7 days</span><span>' + ev.length + '</span></div>' + (ev.map(e => '<div class="evrow' + (e.going ? " going" : "") + '"><div class="t"><b>' + (e.best ? "★ " : "") + esc(e.t) + '</b><span>' + esc(evDay(e.start)) + (e.where ? " · " + esc(e.where) : "") + (e.price ? " · " + esc(e.price) : "") + '</span>' + (e.why ? '<span class="why">' + esc(e.why) + '</span>' : "") + '</div><div class="evbtns">' + (e.url ? '<a class="btn solid sm" href="' + esc(e.url) + '" target="_blank" rel="noopener">Sign up ↗</a>' : "") + '<button class="btn sm' + (e.going ? " on" : "") + '" data-going="' + esc(e.id) + '">' + (e.going ? "✓ Going" : "Going?") + '</button></div></div>').join("") || '<div class="empty">Saturday\'s /life drops the week\'s picks here.</div>'); }
+document.addEventListener("click", e => { const n = e.target.closest("[data-nwdo]"); if (!n) return; const nm = todayIso().slice(0,7); update("nw", nm, {[n.dataset.nwdo]: todayIso()}); set("wins", "nw-" + n.dataset.nwdo + "-" + nm, {key:"nw", label:"NW · " + n.dataset.nwdo, xp:10, date:todayIso(), at:nowIso(), synced:false}); pop(10, n); });
+document.addEventListener("submit", e => { if (e.target.id !== "nw-form") return; e.preventDefault(); const v = $("nw-idea").value.trim(); if (!v) return; add("nwIdeas", {t:v, at:nowIso(), date:todayIso()}); $("nw-idea").value = ""; toast($("home-offToast"), "Idea saved for /nw."); });
 document.addEventListener("click", e => { const g = e.target.closest("[data-going]"); if (!g) return; const d = get("events", g.dataset.going) || {}; update("events", g.dataset.going, {going:!d.going}); });
 function renderPeople(){
   renderEvents();
@@ -649,7 +677,7 @@ function renderPeople(){
   $("gifts-names").innerHTML = ps.map(p => '<option value="' + esc(p.name) + '">').join("");
   const dt = get("meta","dating") || {}, h = home();
   const mon2 = mondayIso(), op = all("wins").filter(w => (w.key === "opener" || w.key === "date" || w.key === "event") && String(w.date) >= mon2);
-  $("pe-dating").innerHTML = '<div class="lab"><span>♥ Dating</span><span>' + esc(h.boss ? "Boss: " + h.boss.name : "") + '</span></div><div class="focus-s">' + esc(dt.title || "The life you're building room for.") + '</div>' +
+  if ($("pe-dating")) $("pe-dating").innerHTML = '<div class="lab"><span>♥ Dating</span><span>' + esc(h.boss ? "Boss: " + h.boss.name : "") + '</span></div><div class="focus-s">' + esc(dt.title || "The life you're building room for.") + '</div>' +
     '<div class="dstats"><span><b>' + op.filter(w => w.key === "opener").length + '</b>openers this week</span><span><b>' + op.filter(w => w.key === "event").length + '</b>events</span><span><b>' + op.filter(w => w.key === "date").length + '</b>dates</span></div>' +
     '<div class="chips" style="margin:10px 0"><button class="chip sm" data-dw="opener">Talked to someone new <span>+20</span></button><button class="chip sm" data-dw="run">Run club <span>+10</span></button><button class="chip sm" data-dw="event">Event <span>+20</span></button><button class="chip sm" data-dw="date">Date <span>+100</span></button></div>' +
     ((dt.where || []).length ? '<div class="lab" style="margin:8px 0 4px">Where this week</div>' + dt.where.map(x => '<div class="row"><span class="t">' + esc(x.t) + '<span>' + esc(x.w || "") + '</span></span></div>').join("") : "") +
@@ -733,7 +761,7 @@ function adminDue(s){
   let d = new Date(y, mi, Number(m[1]), 12); if (!m[3] && d - t > 200*86400000) d = new Date(y-1, mi, Number(m[1]), 12); else if (!m[3] && t - d > 160*86400000) d = new Date(y+1, mi, Number(m[1]), 12);
   return localIso(d);
 }
-const everyTxt = n => n == 7 ? "every week" : n == 14 ? "every 2 weeks" : n == 30 ? "every month" : "every " + n + " days";
+const everyTxt = n => n == 7 ? "every week" : n == 14 ? "every 2 weeks" : n == 28 ? "every 4 weeks" : n == 30 ? "every month" : "every " + n + " days";
 const addDays = (iso, n) => { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + Number(n)); return localIso(d); };
 const daysTo = iso => Math.round((new Date(iso + "T12:00:00") - new Date(todayIso() + "T12:00:00"))/86400000);
 const aOpen = () => ls("lifeos-adminOpen") || {};
@@ -750,12 +778,12 @@ function renderAdmin(){
   // Urgent: on you or waiting, due in under 7 days or late
   const urgent = live.filter(s => s.state !== "park" && adminDue(s) && daysTo(adminDue(s)) < 7).sort((a,b) => adminDue(a).localeCompare(adminDue(b)));
   const uIds = new Set(urgent.map(s => s.id));
-  $("admin-next").innerHTML = '<div class="lab"><span>Urgent · next 7 days</span><span>' + urgent.length + '</span></div>' + (urgent.map(row).join("") || '<div class="empty">Nothing due this week.</div>');
+  $("admin-next").innerHTML = urgent.length ? '<div class="lab"><span>This week</span><span>' + urgent.length + '</span></div>' + urgent.map(row).join("") : '<div class="empty">Nothing due this week.</div>';
   // Groups, folded, open state remembered on this phone
   const open = aOpen(), grp = s => AGROUPS.includes(s.g) ? s.g : (/^cut-/.test(s.id) ? "Money" : "Other");
   $("admin-road").innerHTML = AGROUPS.map(g => { const items = live.filter(s => grp(s) === g && !uIds.has(s.id)).sort((a,b) => (rank[a.state]||0) - (rank[b.state]||0) || String(adminDue(a)||"9").localeCompare(String(adminDue(b)||"9")));
       if (!items.length) return ""; const mine = items.filter(s => s.state === "you" || s.state === "due").length;
-      return '<details class="agroup" data-ag="' + esc(g) + '"' + (open[g] ? " open" : "") + '><summary><span>' + esc(g) + '</span><span class="small">' + (mine ? mine + " on you · " : "") + items.length + ' ▾</span></summary>' + items.map(row).join("") + '</details>'; }).join("") || '<div class="empty">All clear.</div>';
+      return '<details class="agroup" data-ag="' + esc(g) + '"' + (open[g] ? " open" : "") + '><summary><span>' + esc(g) + '</span><span class="small">' + items.length + ' ▾</span></summary>' + items.map(row).join("") + '</details>'; }).join("") || '<div class="empty">All clear.</div>';
   $("admin-done").innerHTML = done.map(row).join("");
   $("admin-g").innerHTML = AGROUPS.map(g => '<option' + (g === "Other" ? " selected" : "") + '>' + g + '</option>').join("");
 }

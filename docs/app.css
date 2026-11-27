@@ -368,3 +368,23 @@ form.g .full{grid-column:1/-1}
 .evhome{display:flex;flex-direction:column;gap:3px;text-decoration:none;color:inherit}
 .evhome b{font-weight:500}
 .evrow .evbtns a.btn{display:flex;align-items:center;justify-content:center}
+
+/* 27 Nov evening batch */
+.breathebig{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;margin:0 0 14px;border-radius:16px;border:1px solid rgba(109,255,176,.45);background:rgba(109,255,176,.10);color:inherit;font-family:inherit;text-align:left;cursor:pointer}
+.breathebig .bi{font-size:26px}
+.breathebig b{display:block;font-weight:500;font-size:16px}
+.breathebig small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.breathebig .bgo{margin-left:auto;color:var(--glow);font-size:14px;white-space:nowrap}
+.breathebig.done{background:var(--soft);border-color:var(--line)}
+.panel.nw{background:#1c1508;border-color:rgba(242,186,92,.45)}
+.nwhd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.nwhd span:first-child{font-family:"Instrument Serif",serif;font-size:22px;color:#f2ba5c}
+.nwnext{display:flex;gap:10px;align-items:flex-start;width:100%;background:none;border:0;color:inherit;font-family:inherit;text-align:left;padding:8px 0;cursor:pointer}
+.nwnext .c{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid #f2ba5c;margin-top:1px}
+.nwidea{display:flex;gap:8px;margin-top:8px}
+.nwidea .field{flex:1;min-width:0}
+.wqq{font-size:22px;line-height:1.2;margin-bottom:10px}
+.wqa{margin:4px 0 8px}
+.qlive{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.addfold summary::-webkit-details-marker{display:none}
+.panel.run input::placeholder{color:var(--muted);opacity:.6}
