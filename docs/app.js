@@ -628,18 +628,42 @@ function renderShop(){
   $("shop-list").innerHTML = shop.map(x => '<div class="shoprow' + (x.done ? " done" : "") + '"><button class="shopt" data-shop="' + esc(x.id) + '" aria-pressed="' + !!x.done + '"><span class="sc">' + (x.done ? "✓" : "") + '</span><span>' + esc(x.t) + '</span></button><button class="x" data-shopdel="' + esc(x.id) + '" aria-label="Remove ' + esc(x.t) + '">×</button></div>').join("");
   $("shop-usual").innerHTML = usual.length ? '<div class="small" style="margin:10px 0 6px">Again?</div><div class="chips">' + usual.map(t => '<button class="chip sm" data-shopadd="' + esc(t) + '">+ ' + esc(t) + '</button>').join("") + '</div>' : "";
 }
+// Admin, grouped (27 Nov 2026, his ask: "group it by stuff and a list I can toggle", urgent = due in under 7 days)
+const AGROUPS = ["Money","Tax and paperwork","Security","Trips","Phone","Other"];
+const MON3 = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+function adminDue(s){
+  if (s.due) return s.due;
+  const m = String(s.date || "").toLowerCase().match(/(\d{1,2})\s+([a-z]{3})[a-z]*\s*(\d{4})?/); if (!m) return "";
+  const mi = MON3.indexOf(m[2]); if (mi < 0) return "";
+  const t = new Date(todayIso() + "T12:00:00"); let y = m[3] ? Number(m[3]) : t.getFullYear();
+  let d = new Date(y, mi, Number(m[1]), 12); if (!m[3] && d - t > 200*86400000) d = new Date(y-1, mi, Number(m[1]), 12); else if (!m[3] && t - d > 160*86400000) d = new Date(y+1, mi, Number(m[1]), 12);
+  return localIso(d);
+}
+const daysTo = iso => Math.round((new Date(iso + "T12:00:00") - new Date(todayIso() + "T12:00:00"))/86400000);
+const aOpen = () => ls("lifeos-adminOpen") || {};
 function renderAdmin(){
   renderShop();
   const steps = all("admin").sort((a,b) => (a.order||0) - (b.order||0)), done = steps.filter(s => s.state === "done").sort((a,b) => String(b.doneAt||"").localeCompare(String(a.doneAt||"")));
   const mstart = todayIso().slice(0,8) + "01", won = done.filter(s => String(s.doneAt||"") >= mstart).length;
   $("admin-count").textContent = won ? won + " won this month" : (steps.length ? done.length + " of " + steps.length + " done" : "");
   $("admin-bar").style.width = steps.length ? Math.round(done.length/steps.length*100) + "%" : "0%";
-  const nx = steps.find(s => s.state === "you") || steps.find(s => s.state === "due");
-  $("admin-next").innerHTML = nx ? '<div class="small">Next for you · ' + esc(nx.date || "") + '</div><div class="serif" style="font-size:24px;line-height:1.2">' + esc(nx.t) + '</div><div class="small">' + esc(nx.w || "") + '</div>' : '<div class="serif" style="font-size:24px">Nothing on you right now</div>';
-  const row = s => '<div class="step' + (s.state === "done" ? " done" : "") + '"><button class="tick' + (s.state === "done" ? " on" : "") + '" data-tick="' + esc(s.id) + '" aria-label="' + (s.state === "done" ? "Mark not done: " : "Mark done: ") + esc(s.t) + '">' + (s.state === "done" ? "✓" : "") + '</button><span class="t"><b style="font-weight:500" data-aedit="' + esc(s.id) + '">' + esc(s.t) + '</b><span>' + esc([s.date, s.w].filter(Boolean).join(" · ")) + '</span>' + (s.state === "you" || s.state === "due" ? '<span class="pill you">On you</span>' : "") + '</span><button class="x" data-adel="' + esc(s.id) + '" aria-label="Delete ' + esc(s.t) + '">×</button></div>';
-  $("admin-road").innerHTML = steps.filter(s => s.state !== "done").map(row).join("") || '<div class="empty">All clear.</div>';
+  const live = steps.filter(s => s.state !== "done"), rank = {you:0, due:0, wait:1, park:2};
+  const when = s => { const d = adminDue(s); if (!d) return s.date || ""; const n = daysTo(d); return n < 0 ? (-n === 1 ? "1 day late" : -n + " days late") : n === 0 ? "today" : n === 1 ? "tomorrow" : "in " + n + " days"; };
+  const row = s => { const d = adminDue(s), late = d && daysTo(d) < 0;
+    return '<div class="step' + (s.state === "done" ? " done" : "") + (s.state === "park" ? " parked" : "") + '"><button class="tick' + (s.state === "done" ? " on" : "") + '" data-tick="' + esc(s.id) + '" aria-label="' + (s.state === "done" ? "Mark not done: " : "Mark done: ") + esc(s.t) + '">' + (s.state === "done" ? "✓" : "") + '</button><span class="t"><b style="font-weight:500" data-aedit="' + esc(s.id) + '">' + esc(s.t) + '</b><span>' + (s.state === "done" ? esc(s.date || "") : '<em class="' + (late ? "late" : "") + '">' + esc(when(s)) + '</em>' + (s.state === "wait" ? " · waiting" : s.state === "park" ? " · parked" : "")) + '</span></span><button class="x" data-adel="' + esc(s.id) + '" aria-label="Delete ' + esc(s.t) + '">×</button></div>'; };
+  // Urgent: on you or waiting, due in under 7 days or late
+  const urgent = live.filter(s => s.state !== "park" && adminDue(s) && daysTo(adminDue(s)) < 7).sort((a,b) => adminDue(a).localeCompare(adminDue(b)));
+  const uIds = new Set(urgent.map(s => s.id));
+  $("admin-next").innerHTML = '<div class="lab"><span>Urgent · next 7 days</span><span>' + urgent.length + '</span></div>' + (urgent.map(row).join("") || '<div class="empty">Nothing due this week.</div>');
+  // Groups, folded, open state remembered on this phone
+  const open = aOpen(), grp = s => AGROUPS.includes(s.g) ? s.g : (/^cut-/.test(s.id) ? "Money" : "Other");
+  $("admin-road").innerHTML = AGROUPS.map(g => { const items = live.filter(s => grp(s) === g && !uIds.has(s.id)).sort((a,b) => (rank[a.state]||0) - (rank[b.state]||0) || String(adminDue(a)||"9").localeCompare(String(adminDue(b)||"9")));
+      if (!items.length) return ""; const mine = items.filter(s => s.state === "you" || s.state === "due").length;
+      return '<details class="agroup" data-ag="' + esc(g) + '"' + (open[g] ? " open" : "") + '><summary><span>' + esc(g) + '</span><span class="small">' + (mine ? mine + " on you · " : "") + items.length + ' ▾</span></summary>' + items.map(row).join("") + '</details>'; }).join("") || '<div class="empty">All clear.</div>';
   $("admin-done").innerHTML = done.map(row).join("");
+  $("admin-g").innerHTML = AGROUPS.map(g => '<option' + (g === "Other" ? " selected" : "") + '>' + g + '</option>').join("");
 }
+document.addEventListener("toggle", e => { const g = e.target.dataset && e.target.dataset.ag; if (!g) return; const o = aOpen(); o[g] = e.target.open; ls("lifeos-adminOpen", o); }, true);
 document.addEventListener("click", e => {
   const x = e.target.closest("[data-adel]"); if (x){ const id = x.dataset.adel, keep = get("admin", id); del("admin", id); toast($("admin-toast"), "Deleted: " + esc(keep ? keep.t : ""), () => set("admin", id, keep)); return; }
   const t = e.target.closest("[data-tick]"); if (!t) return; const s = get("admin", t.dataset.tick); if (!s) return;
@@ -651,7 +675,8 @@ document.addEventListener("click", e => { const a = e.target.closest("[data-aedi
   const done = () => { const v = i.value.trim(); if (v && v !== s.t) update("admin", id, {t:v}); else render(); };
   i.addEventListener("blur", done); i.addEventListener("keydown", ev => { if (ev.key === "Enter") i.blur(); if (ev.key === "Escape"){ i.value = s.t; i.blur(); } }); });
 $("admin-form").addEventListener("submit", e => { e.preventDefault(); const t = $("admin-text").value.trim(); if (!t) return;
-  const id = add("admin", {t, w:"Added in the app", state:"you", order:-Date.now()/1e9, date:"", src:"app"}); $("admin-text").value = "";
+  const due = $("admin-due").value, g = $("admin-g").value || "Other";
+  const id = add("admin", {t, w:"Added in the app", state:"you", order:-Date.now()/1e9, date:due ? fmt(due) : "", due, g, src:"app"}); $("admin-text").value = ""; $("admin-due").value = "";
   toast($("admin-toast"), "Added.", () => del("admin", id)); });
 
 /* ---------- Render ---------- */

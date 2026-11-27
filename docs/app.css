@@ -324,3 +324,15 @@ form.g .full{grid-column:1/-1}
 .shopt .sc{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:var(--soft);color:#000;display:grid;place-items:center;font-size:13px}
 .shoprow.done .shopt .sc{background:var(--glow);border-color:var(--glow)}
 .shoprow.done .shopt span:last-child{color:var(--muted);text-decoration:line-through}
+
+/* Admin groups (27 Nov 2026) */
+.step{grid-template-columns:30px minmax(0,1fr) 32px;align-items:start}
+.step .t em{font-style:normal}
+.step .t em.late{color:var(--warn)}
+.step.parked{opacity:.55}
+.agroup{border-top:1px solid var(--line)}
+.agroup:first-child{border-top:0}
+.agroup summary{display:flex;justify-content:space-between;align-items:center;min-height:48px;cursor:pointer;list-style:none;font-weight:500}
+.agroup summary::-webkit-details-marker{display:none}
+.agroup[open] summary{color:var(--glow)}
+.panel.urgent .lab span:first-child{color:var(--warn)}
