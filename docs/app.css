@@ -311,3 +311,10 @@ form.g .full{grid-column:1/-1}
 .hab:active .hc{transform:scale(.94)}
 #hsheet .er{grid-template-columns:56px minmax(0,1fr) 36px}
 #fsheet .er{grid-template-columns:56px minmax(0,1fr) 36px}
+
+/* Shopping list (27 Nov 2026) */
+.shoprow{display:grid;grid-template-columns:32px minmax(0,1fr) 32px;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.shoprow:first-child{border-top:0}
+.shoprow .sc{width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:var(--soft);color:#000;cursor:pointer;font-size:13px}
+.shoprow.done .sc{background:var(--glow);border-color:var(--glow)}
+.shoprow.done span{color:var(--muted);text-decoration:line-through}
