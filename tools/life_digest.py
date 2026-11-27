@@ -14,7 +14,7 @@ import sys
 
 from lifeos import conn
 
-COLS = ["tonight", "thoughts", "wins", "wake", "fuel", "weights", "sets"]
+COLS = ["tonight", "thoughts", "wins", "wake", "fuel", "weights", "sets", "daily"]
 
 
 def main(argv):
@@ -63,6 +63,9 @@ def main(argv):
             done = [k for k, v in f.items() if v is True]
             if done:
                 extra.append("food " + ", ".join(done))
+        for h in day["daily"]:
+            if h.get("done"):
+                extra.append("daily " + ", ".join(h["done"]))
         for s in day["sets"]:
             extra.append("gym " + str(s.get("session", "")))
         for wt in day["weights"]:

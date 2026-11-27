@@ -147,6 +147,9 @@ function tonightDoc(d){ return get("tonight", d || todayIso()) || {}; }
 function tonightDays(){ return all("tonight").filter(t => t.done).map(t => t.id).sort(); }
 function wakeUntil(){ return home().wakeUntil || ""; }
 
+const HAB_DEF = [{id:"phone21",t:"Phone off 21:00",em:"📵"},{id:"stop18",t:"Stop at 18:00",em:"🛑"},{id:"read20",t:"Read 20 pages",em:"📖"},{id:"nophone",t:"Phone-free hour",em:"🌅"},{id:"move20",t:"Move 20 min",em:"🚶"}];
+const habits = () => { const m = get("meta","habits"); return m && Array.isArray(m.items) ? m.items : HAB_DEF; };
+let habEdit = null;
 function renderHome(){
   const h = home(), xp = xpNow(), {levels, cur, nxt} = levelInfo(xp), top = levels[levels.length-1] || {xp:1000};
   $("home-date").textContent = dayNow().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"short"});
@@ -168,6 +171,11 @@ function renderHome(){
   const dayN = done.includes(todayIso()) ? done.length : done.length + 1;
   $("home-tonight").innerHTML = '<div class="lab"><span>Tonight' + (new Date().getHours() < 18 ? " · from 18:00" : "") + '</span><span>day ' + Math.min(dayN,30) + ' of 30</span></div><div class="focus-s">' + (td.done ? "Saved tonight · +" + tdx : "Today's wins, no matter how small") + '</div><div class="small">' + (td.done ? wn + ' wins · ' + gn + ' grateful · tap to add' : '5 wins · 3 grateful · +2 a line')  + '</div>';
 
+  // Daily habits
+  const hb = habits(), hd = (get("daily", todayIso()) || {}).done || [], wkIsos = weekDays().map(localIso).filter(d => d <= todayIso());
+  $("home-daily").innerHTML = '<div class="lab"><span>Daily · ' + hb.filter(x => hd.includes(x.id)).length + ' of ' + hb.length + ' today</span><button class="link" id="home-editHabs">Edit</button></div><div class="habs">' +
+    hb.map(x => { const on = hd.includes(x.id), n = wkIsos.filter(d => ((get("daily", d) || {}).done || []).includes(x.id)).length;
+      return '<button class="hab' + (on ? " on" : "") + '" data-hab="' + esc(x.id) + '" aria-pressed="' + on + '"><span class="hc">' + esc(x.em || "•") + '</span><span class="hn">' + esc(x.t) + '</span><span class="hw">' + n + ' of ' + wkIsos.length + '</span></button>'; }).join("") + '</div>';
   // Quests (only this week's; stale ones hide until Saturday)
   const q = questsNow(), qd = get("quests", mon) || {}, qdone = qd.done || [];
   const fresh = q && q.week && q.week >= localIso(new Date(new Date(mon+"T12:00:00").getTime() - 6*86400000));
@@ -193,7 +201,8 @@ function renderHome(){
   }
   $("home-tiles").innerHTML =
     '<a class="tile3" href="#body"><div class="hd"><span>Health</span><span>›</span></div><div><div class="n">' + gymN + ' / ' + (b.minPerWeek || 2) + '</div><div class="small">sessions this week</div></div></a>' +
-    '<a class="tile3" href="#money"><div class="hd"><span>Money</span><span>›</span></div><div><div class="n">' + (m.burn ? eur(m.burn.eur) : "…") + '</div><div class="small">a month · subs ' + eur(subs) + '</div></div></a>' +
+    (() => { const ms = m.months || [], lm = ms[ms.length-1], left = lm && m.burn ? lm.v*(1-TAX) - m.burn.eur : null;
+      return '<a class="tile3" href="#money"><div class="hd"><span>Money</span><span>›</span></div><div><div class="n">' + (left == null ? "…" : (left >= 0 ? "+" : "−") + eur(Math.abs(left))) + '</div><div class="small">' + (lm ? esc(lm.m) + " left after tax + spend" : "left this month") + (m.saved ? " · " + esc(m.saved) + " saved" : "") + '</div></div></a>'; })() +
     '<a class="tile3" href="#people"><div class="hd"><span>People</span><span>›</span></div><div><div class="n">' + (nb ? esc(inShort(nb.days)) : "…") + '</div><div class="small">' + (nb ? esc(nb.name.split(" ")[0]) + "'s birthday" : "birthdays") + '</div></div></a>' + fourth;
 
   // Wins
@@ -226,6 +235,9 @@ document.addEventListener("click", e => {
     toast($("home-offToast"), esc(r.name) + (n[id] > 1 ? ", " + n[id] + " this week" : "") + ". +10.", () => { const w2 = Object.assign({}, get("offline", mon) || {}), n2 = Object.assign({}, w2.n || {}), ws2 = Object.assign({}, w2.wins || {}), l2 = [].concat(ws2[id] || []), last = l2.pop();
       if (last) del("wins", last); n2[id] = Math.max(0, (n2[id] || 1) - 1); ws2[id] = l2; w2.n = n2; w2.wins = ws2; if (!n2[id]) w2.done = (w2.done || []).filter(x => x !== id); set("offline", mon, w2); });
     return; }
+  const hbb = e.target.closest("[data-hab]");
+  if (hbb){ const d = todayIso(), cur = Object.assign({date:d}, get("daily", d) || {}), done = (cur.done || []).slice(), i = done.indexOf(hbb.dataset.hab); if (i >= 0) done.splice(i,1); else { done.push(hbb.dataset.hab); pop("✓", hbb); } cur.done = done; set("daily", d, cur); return; }
+  if (e.target.closest("#home-editHabs")){ habEdit = habits().map(x => Object.assign({}, x)); habRender(); $("hsheet").hidden = false; return; }
   const wk = e.target.closest("#home-wake");
   if (wk){ const wdb = e.target.closest("[data-wd]"), d = wdb ? wdb.dataset.wd : todayIso(), cur = get("wake", d), n = new Date();
     if (wdb && d > todayIso()) return;
@@ -247,6 +259,11 @@ $("wsheet-save").addEventListener("click", () => { const v = $("wsheet-t").value
 $("home-ring").addEventListener("click", () => { $("home-stats").open = !$("home-stats").open; });
 
 let wakeDay = null;
+function habRender(){ $("hsheet-rows").innerHTML = habEdit.map((x,i) => '<div class="er"><input class="field" data-hi="' + i + '" data-hf="em" value="' + esc(x.em || "") + '" aria-label="Emoji" style="width:56px;text-align:center"><input class="field" data-hi="' + i + '" data-hf="t" value="' + esc(x.t) + '" aria-label="Habit"><button class="x" data-hdel="' + i + '" aria-label="Remove ' + esc(x.t) + '">×</button></div>').join(""); }
+$("hsheet-rows").addEventListener("input", e => { const i = e.target.dataset.hi; if (i != null) habEdit[i][e.target.dataset.hf] = e.target.value; });
+$("hsheet-rows").addEventListener("click", e => { const d = e.target.closest("[data-hdel]"); if (d){ habEdit.splice(Number(d.dataset.hdel),1); habRender(); } });
+$("hsheet-add").addEventListener("click", () => { habEdit.push({id:"h" + rid().slice(0,6), t:"New habit", em:"⭐"}); habRender(); const f = $("hsheet-rows").querySelectorAll("[data-hf=t]"); f[f.length-1].select(); });
+$("hsheet-done").addEventListener("click", () => { if (habEdit) set("meta","habits",{items:habEdit.filter(x => String(x.t).trim()).map(x => ({id:x.id || "h" + rid().slice(0,6), t:String(x.t).trim(), em:String(x.em || "").trim()})), updated:todayIso()}); habEdit = null; $("hsheet").hidden = true; });
 /* Edit win buttons */
 let editRows = null;
 function sheetRender(){ $("sheet-rows").innerHTML = editRows.map((w,i) => '<div class="er"><input class="field" data-ei="' + i + '" data-ef="label" value="' + esc(w.label) + '" aria-label="Win name"><input class="field" data-ei="' + i + '" data-ef="xp" value="' + esc(w.xp) + '" inputmode="numeric" aria-label="XP"><button class="x" data-edel="' + i + '" aria-label="Remove ' + esc(w.label) + '">×</button></div>').join(""); }

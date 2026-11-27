@@ -44,6 +44,7 @@
     </details>
   </section>
   <a class="panel evening" id="home-tonight" href="#tonight"></a>
+  <section class="panel" id="home-daily"></section>
   <section class="panel"><div class="lab" id="home-questLab">This week's quests</div><div id="home-quests"></div><div class="toast" id="home-questToast" aria-live="polite"></div></section>
   <section class="tiles" id="home-tiles"></section>
   <div class="toast" id="home-tileToast" aria-live="polite" style="margin:-4px 6px 0"></div>
@@ -185,6 +186,12 @@
 </div></div>
 
 <div class="sheet" id="tsheet" hidden><div class="sheetin"><div class="lab"><span>Theme</span><button class="link" id="tsheet-done">Done</button></div><div id="tsheet-body"></div></div></div>
+<div class="sheet" id="hsheet" hidden><div class="sheetin">
+  <div class="lab"><span class="focus-s" style="color:var(--fg)">Your daily habits</span><button class="link" id="hsheet-done">Done</button></div>
+  <div class="small" style="margin-bottom:8px">4 to 6 is the sweet spot. Rename, remove, or add one.</div>
+  <div id="hsheet-rows"></div>
+  <button class="btn" id="hsheet-add" style="width:100%">+ Add a habit</button>
+</div></div>
 <div class="sheet" id="wsheet" hidden><div class="sheetin" style="text-align:center">
   <div class="small" id="wsheet-q">What time were you up?</div>
   <input type="time" class="timepick" id="wsheet-t" value="06:00" aria-label="Wake time">

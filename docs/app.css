@@ -300,3 +300,13 @@ form.g .full{grid-column:1/-1}
 .subrules{padding:8px 0 4px 10px;font-size:13px;color:var(--muted);line-height:1.5}
 .same{width:40px;min-height:40px;border-radius:10px;border:1px solid var(--line);background:var(--soft);color:var(--muted);cursor:pointer;font-size:15px}
 .same.on{background:var(--glow);border-color:var(--glow);color:#000}
+
+/* Daily habits, Streaks-style (27 Nov 2026) */
+.habs{display:grid;grid-template-columns:repeat(auto-fit,minmax(58px,1fr));gap:8px}
+.hab{display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:0;color:inherit;font-family:inherit;cursor:pointer;padding:4px 0}
+.hab .hc{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-size:22px;border:2px solid var(--line);background:var(--soft);transition:background .2s,border-color .2s}
+.hab.on .hc{background:var(--glow);border-color:var(--glow);box-shadow:0 0 12px rgba(109,255,176,.4)}
+.hab .hn{font-size:11px;line-height:1.2;text-align:center}
+.hab .hw{font-size:10px;color:var(--muted)}
+.hab:active .hc{transform:scale(.94)}
+#hsheet .er{grid-template-columns:56px minmax(0,1fr) 36px}
