@@ -132,7 +132,7 @@ const MORE_WINS = [
   {key:"prep",label:"Cooked or prep day",xp:10},{key:"pen",label:"Wrote with a pen",xp:10},{key:"learn",label:"Learned something new",xp:10},
   {key:"museum",label:"Museum or gallery",xp:20},{key:"kind",label:"Was kind to myself",xp:10}];
 // Activities that live on the photo tiles; their quick-log chips are hidden so they can't score twice.
-const TILE_WIN = {padel:"padel", read:"read", walk:"phoneless", sauna:"sauna"}, ON_TILES = ["padel","read","phoneless","sauna"];
+const TILE_WIN = {padel:"padel", read:"read", walk:"phoneless", sauna:"sauna", nw:"nw"}, ON_TILES = ["padel","read","phoneless","sauna"];
 const MAIN8 = ["gym","padel","opener","date","phoneoff","spont","event","journal"], SKIP = ["pocket3","admin","gift"];
 function winButtons(){ const m = get("meta","winButtons"); if (m && m.items) return m.items.filter(w => !ON_TILES.includes(w.key)); const t = home().xpTable || []; return MAIN8.filter(k => !ON_TILES.includes(k)).map(k => t.find(w => w.key === k)).filter(Boolean).map(w => ({key:w.key, label:w.key === "gym" ? "Gym" : w.key === "phoneoff" ? "Phone off at 9, alarm clock on ⏰" : w.label, xp:w.key === "gym" ? 20 : w.xp})); }
 function moreWins(){ const mine = winButtons().map(w => w.key), t = (home().xpTable || []).filter(w => !SKIP.includes(w.key)).map(w => ({key:w.key, label:w.label, xp:w.xp})); const pool = t.concat(MORE_WINS.filter(w => !t.find(x => x.key === w.key))); return pool.filter(w => !mine.includes(w.key) && !ON_TILES.includes(w.key)); }
