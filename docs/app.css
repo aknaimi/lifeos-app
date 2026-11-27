@@ -388,3 +388,4 @@ form.g .full{grid-column:1/-1}
 .qlive{display:block;color:var(--muted);font-size:12px;margin-top:2px}
 .addfold summary::-webkit-details-marker{display:none}
 .panel.run input::placeholder{color:var(--muted);opacity:.6}
+.evrow .evbtns .x{flex:none}

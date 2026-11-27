@@ -14,7 +14,7 @@
 <link rel="icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=15">
+<link rel="stylesheet" href="app.css?v=16">
 </head>
 <body>
 <div class="sync" id="sync" hidden></div>
@@ -131,6 +131,7 @@
 <main class="view" id="v-people" hidden>
   <div class="top"><span class="brand">People</span></div>
   <section class="panel" id="pe-events"></section>
+  <div class="toast" id="pe-evToast" aria-live="polite" style="margin:-4px 6px 0"></div>
   <section class="panel callcard"><div><div class="focus-s">Call or text someone you love</div><div class="small" id="pe-callLast"></div></div><div class="stack"><button class="btn solid sm" id="pe-called">Called +10</button><button class="btn sm" id="pe-texted">Texted +5</button></div></section>
   <div class="toast" id="pe-callToast" aria-live="polite" style="margin:-4px 6px 0"></div>
   <section class="panel"><div class="lab"><span>Birthdays</span></div><div id="pe-next"></div>
@@ -239,6 +240,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
-<script src="app.js?v=16"></script>
+<script src="app.js?v=17"></script>
 </body>
 </html>
