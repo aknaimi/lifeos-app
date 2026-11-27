@@ -197,7 +197,7 @@ function renderHome(){
     fourth = '<button class="tile3 wake" id="home-wake"><div class="hd"><span>Wake · goal 06:00</span></div><div class="wbars">' + wd.map((w,i) => '<span class="wb' + (w ? (w.t <= "06:15" ? " ok" : " late") : "") + (isos[i] === todayIso() ? " today" : "") + '" data-wd="' + isos[i] + '"><i style="height:' + (w ? hgt(w.t) : 8) + '%"></i><em>' + "MTWTFSS"[i] + '</em></span>').join("") + '</div><div class="small">' + (today ? "Up at <b>" + esc(today.t) + "</b> today · tap a day to change it" : "Tap when you're up · tap a day to fix it") + '</div></button>';
   } else {
     const steps = all("admin"), nx = steps.filter(s => s.state !== "done").sort((a,c) => (a.order||0)-(c.order||0)).find(s => s.state === "you" || s.state === "due");
-    fourth = '<a class="tile3" href="#admin"><div class="hd"><span>Admin</span><span>›</span></div><div><div class="n">' + esc(nx ? nx.t.split(" ").slice(0,2).join(" ") : "Clear") + '</div><div class="small">' + steps.filter(s => s.state === "done").length + ' of ' + steps.length + ' done</div></div></a>';
+    fourth = '<a class="tile3" href="#admin"><div class="hd"><span>To do</span><span>›</span></div><div><div class="n">' + esc(nx ? nx.t.split(" ").slice(0,2).join(" ") : "Clear") + '</div><div class="small">' + steps.filter(s => s.state === "done").length + ' of ' + steps.length + ' done</div></div></a>';
   }
   $("home-tiles").innerHTML =
     '<a class="tile3" href="#body"><div class="hd"><span>Health</span><span>›</span></div><div><div class="n">' + gymN + ' / ' + (b.minPerWeek || 2) + '</div><div class="small">sessions this week</div></div></a>' +
@@ -629,7 +629,7 @@ function renderShop(){
   $("shop-usual").innerHTML = usual.length ? '<div class="small" style="margin:10px 0 6px">Again?</div><div class="chips">' + usual.map(t => '<button class="chip sm" data-shopadd="' + esc(t) + '">+ ' + esc(t) + '</button>').join("") + '</div>' : "";
 }
 // Admin, grouped (27 Nov 2026, his ask: "group it by stuff and a list I can toggle", urgent = due in under 7 days)
-const AGROUPS = ["Money","Tax and paperwork","Security","Trips","Phone","Other"];
+const AGROUPS = ["Chores","Money","Tax and paperwork","Security","Trips","Phone","Other"];
 const MON3 = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
 function adminDue(s){
   if (s.due) return s.due;
@@ -639,6 +639,8 @@ function adminDue(s){
   let d = new Date(y, mi, Number(m[1]), 12); if (!m[3] && d - t > 200*86400000) d = new Date(y-1, mi, Number(m[1]), 12); else if (!m[3] && t - d > 160*86400000) d = new Date(y+1, mi, Number(m[1]), 12);
   return localIso(d);
 }
+const everyTxt = n => n == 7 ? "every week" : n == 14 ? "every 2 weeks" : n == 30 ? "every month" : "every " + n + " days";
+const addDays = (iso, n) => { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + Number(n)); return localIso(d); };
 const daysTo = iso => Math.round((new Date(iso + "T12:00:00") - new Date(todayIso() + "T12:00:00"))/86400000);
 const aOpen = () => ls("lifeos-adminOpen") || {};
 function renderAdmin(){
@@ -650,7 +652,7 @@ function renderAdmin(){
   const live = steps.filter(s => s.state !== "done"), rank = {you:0, due:0, wait:1, park:2};
   const when = s => { const d = adminDue(s); if (!d) return s.date || ""; const n = daysTo(d); return n < 0 ? (-n === 1 ? "1 day late" : -n + " days late") : n === 0 ? "today" : n === 1 ? "tomorrow" : "in " + n + " days"; };
   const row = s => { const d = adminDue(s), late = d && daysTo(d) < 0;
-    return '<div class="step' + (s.state === "done" ? " done" : "") + (s.state === "park" ? " parked" : "") + '"><button class="tick' + (s.state === "done" ? " on" : "") + '" data-tick="' + esc(s.id) + '" aria-label="' + (s.state === "done" ? "Mark not done: " : "Mark done: ") + esc(s.t) + '">' + (s.state === "done" ? "✓" : "") + '</button><span class="t"><b style="font-weight:500" data-aedit="' + esc(s.id) + '">' + esc(s.t) + '</b><span>' + (s.state === "done" ? esc(s.date || "") : '<em class="' + (late ? "late" : "") + '">' + esc(when(s)) + '</em>' + (s.state === "wait" ? " · waiting" : s.state === "park" ? " · parked" : "")) + '</span></span><button class="x" data-adel="' + esc(s.id) + '" aria-label="Delete ' + esc(s.t) + '">×</button></div>'; };
+    return '<div class="step' + (s.state === "done" ? " done" : "") + (s.state === "park" ? " parked" : "") + '"><button class="tick' + (s.state === "done" ? " on" : "") + '" data-tick="' + esc(s.id) + '" aria-label="' + (s.state === "done" ? "Mark not done: " : "Mark done: ") + esc(s.t) + '">' + (s.state === "done" ? "✓" : "") + '</button><span class="t"><b style="font-weight:500" data-aedit="' + esc(s.id) + '">' + esc(s.t) + '</b><span>' + (s.state === "done" ? esc(s.date || "") : '<em class="' + (late ? "late" : "") + '">' + esc(when(s)) + '</em>' + (s.every ? " · " + everyTxt(s.every) : "") + (s.state === "wait" ? " · waiting" : s.state === "park" ? " · parked" : "")) + '</span></span><button class="x" data-adel="' + esc(s.id) + '" aria-label="Delete ' + esc(s.t) + '">×</button></div>'; };
   // Urgent: on you or waiting, due in under 7 days or late
   const urgent = live.filter(s => s.state !== "park" && adminDue(s) && daysTo(adminDue(s)) < 7).sort((a,b) => adminDue(a).localeCompare(adminDue(b)));
   const uIds = new Set(urgent.map(s => s.id));
@@ -667,6 +669,7 @@ document.addEventListener("toggle", e => { const g = e.target.dataset && e.targe
 document.addEventListener("click", e => {
   const x = e.target.closest("[data-adel]"); if (x){ const id = x.dataset.adel, keep = get("admin", id); del("admin", id); toast($("admin-toast"), "Deleted: " + esc(keep ? keep.t : ""), () => set("admin", id, keep)); return; }
   const t = e.target.closest("[data-tick]"); if (!t) return; const s = get("admin", t.dataset.tick); if (!s) return;
+  if (s.every && s.state !== "done"){ const d = todayIso(), nd = addDays(d, s.every); set("wins", "admin-" + t.dataset.tick + "-" + d, {key:"admin", label:"Chore · " + s.t, xp:10, date:d, at:nowIso(), synced:false}); update("admin", t.dataset.tick, {due:nd, date:fmt(nd), lastDone:d}); pop(10, t); return; }
   const wid = "admin-" + t.dataset.tick;
   if (s.state === "done"){ update("admin", t.dataset.tick, {state:s.prev || "you", tickedByYou:false}); if (get("wins", wid)) del("wins", wid); }
   else { update("admin", t.dataset.tick, {prev:s.state, state:"done", tickedByYou:true, doneAt:todayIso()}); set("wins", wid, {key:"admin", label:"Admin · " + s.t, xp:10, date:todayIso(), at:nowIso(), synced:false}); pop(10, t); } });
@@ -675,8 +678,8 @@ document.addEventListener("click", e => { const a = e.target.closest("[data-aedi
   const done = () => { const v = i.value.trim(); if (v && v !== s.t) update("admin", id, {t:v}); else render(); };
   i.addEventListener("blur", done); i.addEventListener("keydown", ev => { if (ev.key === "Enter") i.blur(); if (ev.key === "Escape"){ i.value = s.t; i.blur(); } }); });
 $("admin-form").addEventListener("submit", e => { e.preventDefault(); const t = $("admin-text").value.trim(); if (!t) return;
-  const due = $("admin-due").value, g = $("admin-g").value || "Other";
-  const id = add("admin", {t, w:"Added in the app", state:"you", order:-Date.now()/1e9, date:due ? fmt(due) : "", due, g, src:"app"}); $("admin-text").value = ""; $("admin-due").value = "";
+  const due = $("admin-due").value, g = $("admin-g").value || "Other", every = Number($("admin-every").value) || 0;
+  const id = add("admin", {t, w:"Added in the app", state:"you", order:-Date.now()/1e9, date:due ? fmt(due) : "", due: due || (every ? todayIso() : ""), g, src:"app", ...(every ? {every} : {})}); $("admin-text").value = ""; $("admin-due").value = ""; $("admin-every").value = "";
   toast($("admin-toast"), "Added.", () => del("admin", id)); });
 
 /* ---------- Render ---------- */
