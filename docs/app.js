@@ -203,7 +203,8 @@ function renderHome(){
     '<a class="tile3" href="#body"><div class="hd"><span>Health</span><span>›</span></div><div><div class="n">' + gymN + ' / ' + (b.minPerWeek || 2) + '</div><div class="small">sessions this week</div></div></a>' +
     (() => { const ms = m.months || [], lm = ms[ms.length-1], left = lm && m.burn ? lm.v*(1-TAX) - m.burn.eur : null;
       return '<a class="tile3" href="#money"><div class="hd"><span>Money</span><span>›</span></div><div><div class="n">' + (left == null ? "…" : (left >= 0 ? "+" : "−") + eur(Math.abs(left))) + '</div><div class="small">' + (lm ? esc(lm.m) + " left after tax + spend" : "left this month") + (m.saved ? " · " + esc(m.saved) + " saved" : "") + '</div></div></a>'; })() +
-    '<a class="tile3" href="#people"><div class="hd"><span>People</span><span>›</span></div><div><div class="n">' + (nb ? esc(inShort(nb.days)) : "…") + '</div><div class="small">' + (nb ? esc(nb.name.split(" ")[0]) + "'s birthday" : "birthdays") + '</div></div></a>' + fourth;
+    (nb && nb.days <= 14 ? '<a class="tile3" href="#people"><div class="hd"><span>People</span><span>›</span></div><div><div class="n">' + esc(inShort(nb.days)) + '</div><div class="small">' + esc(nb.name.split(" ")[0]) + "'s birthday" + '</div></div></a>'
+      : '<button class="tile3" id="home-gift"><div class="hd"><span>Gifts</span><span>+</span></div><div><div class="n">' + openGifts().length + '</div><div class="small">ideas saved · tap to add one</div></div></button>') + fourth;
 
   // Wins
   $("home-wins").innerHTML = winButtons().map((w,i) => '<button class="chip" data-w="' + i + '">' + esc(w.label) + '<span>+' + w.xp + '</span></button>').join("");
@@ -238,6 +239,7 @@ document.addEventListener("click", e => {
   const hbb = e.target.closest("[data-hab]");
   if (hbb){ const d = todayIso(), cur = Object.assign({date:d}, get("daily", d) || {}), done = (cur.done || []).slice(), i = done.indexOf(hbb.dataset.hab); if (i >= 0) done.splice(i,1); else { done.push(hbb.dataset.hab); pop("✓", hbb); } cur.done = done; set("daily", d, cur); return; }
   if (e.target.closest("#home-editHabs")){ habEdit = habits().map(x => Object.assign({}, x)); habRender(); $("hsheet").hidden = false; return; }
+  if (e.target.closest("#home-gift")){ $("gsheet-t").value = ""; $("gsheet").hidden = false; setTimeout(() => $("gsheet-t").focus(), 50); return; }
   const wk = e.target.closest("#home-wake");
   if (wk){ const wdb = e.target.closest("[data-wd]"), d = wdb ? wdb.dataset.wd : todayIso(), cur = get("wake", d), n = new Date();
     if (wdb && d > todayIso()) return;
@@ -259,6 +261,13 @@ $("wsheet-save").addEventListener("click", () => { const v = $("wsheet-t").value
 $("home-ring").addEventListener("click", () => { $("home-stats").open = !$("home-stats").open; });
 
 let wakeDay = null;
+$("gsheet-cancel").addEventListener("click", () => { $("gsheet").hidden = true; });
+$("gsheet").addEventListener("click", e => { if (e.target.id === "gsheet") $("gsheet").hidden = true; });
+$("gsheet-form").addEventListener("submit", e => { e.preventDefault();
+  const raw = $("gsheet-t").value.trim(), m = raw.match(/^(.+?)\s+for\s+([^,]+)$/i), t = m ? m[1].trim() : raw, who = m ? m[2].trim() : "";
+  if (!t){ $("gsheet-note").textContent = "Type the idea, then 'for' and who."; return; }
+  const id = add("giftIdeas", {who, t, at:nowIso(), given:false}); $("gsheet").hidden = true;
+  toast($("home-tileToast"), "Saved" + (who ? " for " + esc(who) : "") + ".", () => del("giftIdeas", id)); });
 function habRender(){ $("hsheet-rows").innerHTML = habEdit.map((x,i) => '<div class="er"><input class="field" data-hi="' + i + '" data-hf="em" value="' + esc(x.em || "") + '" aria-label="Emoji" style="width:56px;text-align:center"><input class="field" data-hi="' + i + '" data-hf="t" value="' + esc(x.t) + '" aria-label="Habit"><button class="x" data-hdel="' + i + '" aria-label="Remove ' + esc(x.t) + '">×</button></div>').join(""); }
 $("hsheet-rows").addEventListener("input", e => { const i = e.target.dataset.hi; if (i != null) habEdit[i][e.target.dataset.hf] = e.target.value; });
 $("hsheet-rows").addEventListener("click", e => { const d = e.target.closest("[data-hdel]"); if (d){ habEdit.splice(Number(d.dataset.hdel),1); habRender(); } });
@@ -523,7 +532,7 @@ const inShort = n => n === 0 ? "Today" : n === 1 ? "Tmrw" : n < 7 ? new Date(Dat
 function renderPeople(){
   const ps = people();
   $("pe-next").innerHTML = ps.slice(0,5).map(p => { const ideas = openGifts().filter(g => g.who.toLowerCase() === p.name.toLowerCase());
-    return '<div class="row"><span class="t">' + esc(p.name) + '<span>' + (p.days > 14 && !p.gentle ? "say hi: a call, a text, or save a gift idea" + (ideas.length ? " · idea: " + esc(ideas[0].t) : "") : "birthday" + (ideas.length ? " · idea: " + esc(ideas[0].t) : p.days <= 14 ? " · a message or a gift?" : "")) + '</span>' + (p.days > 14 && !p.gentle ? '<span class="chips" style="margin-top:6px"><button class="chip sm" data-bcall="' + esc(p.name) + '">Called <span>+10</span></button><button class="chip sm" data-btext="' + esc(p.name) + '">Texted <span>+5</span></button><button class="chip sm" data-bgift="' + esc(p.name) + '">+ Gift idea</button></span>' : "") + '</span><span class="' + (p.days <= 7 ? "warn" : "small") + '">' + esc(p.days < 7 ? inShort(p.days) + " " + p.next.getDate() : p.next.getDate() + " " + MONTHS[p.next.getMonth()].slice(0,3)) + '</span></div>'; }).join("") || '<div class="empty">Birthdays show here after the first sync.</div>';
+    return '<div class="row"><span class="t">' + esc(p.name) + '<span>birthday' + (ideas.length ? " · idea: " + esc(ideas[0].t) : p.days <= 14 ? " · a message or a gift?" : "") + '</span></span><span class="' + (p.days <= 7 ? "warn" : "small") + '">' + esc(p.days < 7 ? inShort(p.days) + " " + p.next.getDate() : p.next.getDate() + " " + MONTHS[p.next.getMonth()].slice(0,3)) + '</span></div>'; }).join("") || '<div class="empty">Birthdays show here after the first sync.</div>';
   const lastCall = all("wins").filter(w => w.key === "call" || w.key === "text" || w.key === "family").sort((a,c) => String(c.at).localeCompare(String(a.at)))[0];
   $("pe-callLast").textContent = lastCall ? "last one logged " + fmt(lastCall.date) : "nothing logged yet";
   const open = openGifts(), done = all("giftIdeas").filter(g => g.given || g.bought).sort((a,b) => String(b.boughtAt || b.givenAt || "").localeCompare(String(a.boughtAt || a.givenAt || ""))).slice(0,6);
@@ -550,9 +559,6 @@ $("bday-day").innerHTML = '<option value="">Day</option>' + [...Array(31)].map((
 $("bday-month").innerHTML = '<option value="">Month</option>' + MONTHS.map((m,i) => '<option value="' + (i+1) + '">' + m.slice(0,3) + "</option>").join("");
 document.addEventListener("click", e => {
   const d = e.target.closest("[data-bdel]"); if (d){ const P = get("meta","people") || {}, hidden = (P.hidden || []).concat([d.dataset.bdel]); update("meta","people",{hidden}); const b = all("birthdays").find(x => x.name === d.dataset.bdel); toast($("bday-toast"), "Removed " + esc(d.dataset.bdel) + ".", () => update("meta","people",{hidden:hidden.filter(x => x !== d.dataset.bdel)})); return; }
-  const bc = e.target.closest("[data-bcall]"); if (bc){ logWin({key:"call", label:"Called " + bc.dataset.bcall, xp:10}, $("bday-toast2"), bc); return; }
-  const bt = e.target.closest("[data-btext]"); if (bt){ logWin({key:"text", label:"Texted " + bt.dataset.btext, xp:5}, $("bday-toast2"), bt); return; }
-  const bg = e.target.closest("[data-bgift]"); if (bg){ const f = $("gifts-idea"); f.value = " for " + bg.dataset.bgift; f.scrollIntoView({behavior:"smooth", block:"center"}); f.focus(); f.setSelectionRange(0,0); return; }
   const dw = e.target.closest("[data-dw]"); if (dw){ logWin(({date:{key:"date", label:"Date", xp:100}, run:{key:"run", label:"Run club", xp:10}, event:{key:"event", label:"Event attended", xp:20}})[dw.dataset.dw] || {key:"opener", label:"Talked to someone new", xp:20}, $("pe-callToast"), dw); }
 });
 $("pe-called").addEventListener("click", () => logWin({key:"call", label:"Called someone I love", xp:10}, $("pe-callToast"), $("pe-called")));

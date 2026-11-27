@@ -129,7 +129,7 @@
   <div class="top"><span class="brand">People</span></div>
   <section class="panel callcard"><div><div class="focus-s">Call or text someone you love</div><div class="small" id="pe-callLast"></div></div><div class="stack"><button class="btn solid sm" id="pe-called">Called +10</button><button class="btn sm" id="pe-texted">Texted +5</button></div></section>
   <div class="toast" id="pe-callToast" aria-live="polite" style="margin:-4px 6px 0"></div>
-  <section class="panel"><div class="lab"><span>Birthdays</span></div><div id="pe-next"></div><div class="toast" id="bday-toast2" aria-live="polite"></div>
+  <section class="panel"><div class="lab"><span>Birthdays</span></div><div id="pe-next"></div>
     <details style="margin-top:8px"><summary class="lab" style="margin:0"><span>See more · add one</span><span>▾</span></summary>
     <form class="g" id="bday-form" autocomplete="off" style="grid-template-columns:minmax(0,1fr) 70px 86px;margin-top:10px">
       <input class="field" id="bday-name" placeholder="Name" aria-label="Name">
@@ -191,6 +191,12 @@
   <div class="small" style="margin-bottom:8px">4 to 6 is the sweet spot. Rename, remove, or add one.</div>
   <div id="hsheet-rows"></div>
   <button class="btn" id="hsheet-add" style="width:100%">+ Add a habit</button>
+</div></div>
+<div class="sheet" id="gsheet" hidden><div class="sheetin">
+  <div class="small" style="margin-bottom:8px">A gift idea</div>
+  <form id="gsheet-form" autocomplete="off"><input class="field" id="gsheet-t" placeholder="e.g. Leather wallet for Robin" aria-label="Gift idea and who it's for" enterkeyhint="done" list="gifts-names">
+  <div class="small" id="gsheet-note" style="margin:6px 0 14px">Idea, then "for" and who.</div>
+  <div class="grid2"><button class="btn" type="button" id="gsheet-cancel">Cancel</button><button class="btn solid" type="submit">Save</button></div></form>
 </div></div>
 <div class="sheet" id="wsheet" hidden><div class="sheetin" style="text-align:center">
   <div class="small" id="wsheet-q">What time were you up?</div>
