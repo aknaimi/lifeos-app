@@ -84,7 +84,7 @@ let route = "home";
 function show(){
   let k = (location.hash || "#home").slice(1); if (k === "gifts") k = "people";
   route = VIEWS.includes(k) ? k : "home";
-  const authed = !!(sb ? session : true);
+  const authed = !!(sb ? (session || offlineOk) : true);
   $("v-login").hidden = authed;
   $("tabs").hidden = !authed;
   VIEWS.forEach(v => { $("v-" + v).hidden = !authed || v !== route; });
@@ -147,7 +147,7 @@ function tonightDoc(d){ return get("tonight", d || todayIso()) || {}; }
 function tonightDays(){ return all("tonight").filter(t => t.done).map(t => t.id).sort(); }
 function wakeUntil(){ return home().wakeUntil || ""; }
 
-const HAB_DEF = [{id:"phone21",t:"Phone off 21:00",em:"📵"},{id:"stop18",t:"Stop at 18:00",em:"🛑"},{id:"read20",t:"Read 20 pages",em:"📖"},{id:"nophone",t:"Phone-free hour",em:"🌅"},{id:"move20",t:"Move 20 min",em:"🚶"}];
+const HAB_DEF = [{id:"phone21",t:"Phone off 21:00",em:"📵"},{id:"stop18",t:"Stop at 18:00",em:"🛑"},{id:"read20",t:"Read 20 pages",em:"📖"},{id:"nophone",t:"Phone-free hour",em:"🌅"}];
 const habits = () => { const m = get("meta","habits"); return m && Array.isArray(m.items) ? m.items : HAB_DEF; };
 let habEdit = null;
 function renderHome(){
@@ -523,7 +523,7 @@ const inShort = n => n === 0 ? "Today" : n === 1 ? "Tmrw" : n < 7 ? new Date(Dat
 function renderPeople(){
   const ps = people();
   $("pe-next").innerHTML = ps.slice(0,5).map(p => { const ideas = openGifts().filter(g => g.who.toLowerCase() === p.name.toLowerCase());
-    return '<div class="row"><span class="t">' + esc(p.name) + '<span>birthday' + (ideas.length ? " · idea: " + esc(ideas[0].t) : p.days <= 14 ? " · a message or a gift?" : "") + '</span>' + (p.days > 14 && !p.gentle ? '<span class="chips" style="margin-top:6px"><button class="chip sm" data-bcall="' + esc(p.name) + '">Called <span>+10</span></button><button class="chip sm" data-btext="' + esc(p.name) + '">Texted <span>+5</span></button><button class="chip sm" data-bgift="' + esc(p.name) + '">+ Gift idea</button></span>' : "") + '</span><span class="' + (p.days <= 7 ? "warn" : "small") + '">' + esc(p.days < 7 ? inShort(p.days) + " " + p.next.getDate() : p.next.getDate() + " " + MONTHS[p.next.getMonth()].slice(0,3)) + '</span></div>'; }).join("") || '<div class="empty">Birthdays show here after the first sync.</div>';
+    return '<div class="row"><span class="t">' + esc(p.name) + '<span>' + (p.days > 14 && !p.gentle ? "say hi: a call, a text, or save a gift idea" + (ideas.length ? " · idea: " + esc(ideas[0].t) : "") : "birthday" + (ideas.length ? " · idea: " + esc(ideas[0].t) : p.days <= 14 ? " · a message or a gift?" : "")) + '</span>' + (p.days > 14 && !p.gentle ? '<span class="chips" style="margin-top:6px"><button class="chip sm" data-bcall="' + esc(p.name) + '">Called <span>+10</span></button><button class="chip sm" data-btext="' + esc(p.name) + '">Texted <span>+5</span></button><button class="chip sm" data-bgift="' + esc(p.name) + '">+ Gift idea</button></span>' : "") + '</span><span class="' + (p.days <= 7 ? "warn" : "small") + '">' + esc(p.days < 7 ? inShort(p.days) + " " + p.next.getDate() : p.next.getDate() + " " + MONTHS[p.next.getMonth()].slice(0,3)) + '</span></div>'; }).join("") || '<div class="empty">Birthdays show here after the first sync.</div>';
   const lastCall = all("wins").filter(w => w.key === "call" || w.key === "text" || w.key === "family").sort((a,c) => String(c.at).localeCompare(String(a.at)))[0];
   $("pe-callLast").textContent = lastCall ? "last one logged " + fmt(lastCall.date) : "nothing logged yet";
   const open = openGifts(), done = all("giftIdeas").filter(g => g.given || g.bought).sort((a,b) => String(b.boughtAt || b.givenAt || "").localeCompare(String(a.boughtAt || a.givenAt || ""))).slice(0,6);
@@ -629,16 +629,29 @@ const R = {home:renderHome, tonight:renderTonight, body:renderBody, money:render
 function render(){ cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { (R[route] || renderHome)(); }); }
 
 /* ---------- Boot ---------- */
-let session = null;
+let session = null, offlineOk = false;
+// Offline (a flight): if you've signed in on this phone before and the data is cached, open the app anyway.
+// Taps queue up and sync once you're back online and the session refreshes.
+const timeout = (pr, ms) => Promise.race([pr, new Promise(ok => setTimeout(() => ok({data:{session:null}, error:"timeout"}), ms))]);
+async function reconnect(){
+  if (!sb) return;
+  if (session){ flush(); return; }
+  const r = await timeout(sb.auth.getSession(), 5000); if (r.data && r.data.session){ session = r.data.session; offlineOk = false; ls("lifeos-authed", true); show(); pull(); live(); flush(); }
+}
 async function boot(){
   if (window.supabase && CFG.url && CFG.anonKey){
     sb = window.supabase.createClient(CFG.url, CFG.anonKey, {auth:{persistSession:true, autoRefreshToken:true}});
-    const r = await sb.auth.getSession(); session = r.data.session;
+    const r = await timeout(sb.auth.getSession(), 4000); session = (r.data && r.data.session) || null;
+    if (session) ls("lifeos-authed", true);
+    else if (ls("lifeos-authed") && Object.keys(store).length){ offlineOk = true; setSync(queue.length ? "Offline · " + queue.length + " waiting" : "Offline · saves here, syncs later"); }
     sb.auth.onAuthStateChange((_e, s) => { const was = !!session; session = s; if (s && !was){ show(); pull(); live(); flush(); } else if (!s) show(); });
     show();
     if (session){ pull(); live(); flush(); }
-    window.addEventListener("online", flush);
-    document.addEventListener("visibilitychange", () => { if (!document.hidden && session){ pull(); flush(); } });
+    window.addEventListener("online", reconnect);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) return; if (session){ pull(); flush(); } else if (offlineOk) reconnect(); });
+  } else if (ls("lifeos-authed") && Object.keys(store).length){
+    // The sign-in library didn't load (no signal and not cached yet): run from the cached data, sync on the next online open.
+    setSync(queue.length ? "Offline · " + queue.length + " waiting" : "Offline · saves here, syncs later"); show();
   } else {
     if (!Object.keys(store).length){ try{ const r = await fetch("seed.local.json"); if (r.ok){ store = await r.json(); persist(); } }catch(e){} }
     setSync("Preview · not synced"); show();
