@@ -80,7 +80,7 @@
   <section class="panel">
     <div class="lab">Pick today's session</div><div class="grid3" id="body-picks"></div>
     <div id="body-ex" style="margin-top:12px"></div>
-    <div class="small" style="margin-top:8px">Type the kg and reps you did. Beat last time by one rep or 2.5 kg: it turns green.</div>
+    <div class="small" style="margin-top:8px">Same as last time? Tap ✓. Beat it by one rep or 2.5 kg: type it, it turns green.</div>
     <div class="grid2" style="margin-top:12px"><button class="btn solid" id="body-finish">Finish session · +20</button><button class="btn" id="body-padel">Played padel · +10</button></div>
     <div class="toast" id="body-toast" aria-live="polite"></div>
   </section>
@@ -105,11 +105,13 @@
   <section class="panel"><div class="lab"><span>Where it goes · each month</span><span id="mo-burn"></span></div><div id="mo-parts"></div><div class="toast" id="mo-toast" aria-live="polite"></div></section>
   <section class="panel soon" id="mo-soon"></section>
   <section class="panel save" id="mo-save"></section>
+  <section class="panel" id="mo-dwz" hidden></section>
 </main>
 
 <!-- THINK -->
 <main class="view" id="v-think" hidden>
   <div class="top"><span class="brand">Think</span></div>
+  <section class="panel" id="think-glance" hidden></section>
   <section class="panel">
     <textarea class="field bigcap" id="think-text" rows="3" placeholder="What's on your mind?" aria-label="New thought"></textarea><button class="btn solid" id="think-save" style="width:100%;margin-top:8px">Save</button>
     <div class="toast" id="think-toast" aria-live="polite"></div>

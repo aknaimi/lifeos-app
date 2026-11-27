@@ -314,7 +314,7 @@ function renderBody(){
   $("body-picks").innerHTML = plan.map((p,i) => '<button class="pick' + (sel && p.id === sel.id ? " on" : "") + '" data-pick="' + esc(p.id) + '"><b>' + esc(p.id) + '</b><span>' + esc(i === ni ? "Next up" : (p.short || "")) + '</span></button>').join("");
   if (!document.activeElement || !document.activeElement.classList.contains("num"))
     $("body-ex").innerHTML = sel ? (sel.exercises || []).map(e => { const l = lastFor(e.n), d = draft[e.n] || {}, beat = l && d.kg != null && d.reps != null && d.kg !== "" && d.reps !== "" && (d.kg > l.kg || (d.kg >= l.kg && d.reps > l.reps));
-      return '<div class="ex' + (beat ? " beat" : "") + '" data-exn="' + esc(e.n) + '"><span class="t">' + esc(e.n) + '<span>' + esc(e.s) + (l ? " · last " + l.kg + " kg × " + l.reps : " · first time: set your baseline") + '</span></span><span style="display:flex;gap:6px"><input class="num" data-n="' + esc(e.n) + '" data-f="kg" type="number" step="0.5" inputmode="decimal" placeholder="kg" aria-label="' + esc(e.n) + ' kg" value="' + esc(d.kg ?? "") + '"><input class="num" data-n="' + esc(e.n) + '" data-f="reps" type="number" inputmode="numeric" placeholder="reps" aria-label="' + esc(e.n) + ' reps" value="' + esc(d.reps ?? "") + '" style="width:58px"></span></div>'; }).join("") : '<div class="empty">Your plan shows here after the first sync.</div>';
+      return '<div class="ex' + (beat ? " beat" : "") + '" data-exn="' + esc(e.n) + '"><span class="t">' + esc(e.n) + '<span>' + esc(e.s) + (l ? " · last " + l.kg + " kg × " + l.reps : " · first time: set your baseline") + '</span></span><span style="display:flex;gap:6px">' + (l ? '<button class="same' + (d.kg === l.kg && d.reps === l.reps ? " on" : "") + '" data-same="' + esc(e.n) + '" aria-label="Same as last time for ' + esc(e.n) + '">✓</button>' : "") + '<input class="num" data-n="' + esc(e.n) + '" data-f="kg" type="number" step="0.5" inputmode="decimal" placeholder="kg" aria-label="' + esc(e.n) + ' kg" value="' + esc(d.kg ?? "") + '"><input class="num" data-n="' + esc(e.n) + '" data-f="reps" type="number" inputmode="numeric" placeholder="reps" aria-label="' + esc(e.n) + ' reps" value="' + esc(d.reps ?? "") + '" style="width:58px"></span></div>'; }).join("") : '<div class="empty">Your plan shows here after the first sync.</div>';
   // Strength line
   const names = [...new Set(plan.flatMap(p => (p.exercises||[]).map(e => e.n)))];
   if (!strEx || !names.includes(strEx)) strEx = names[0];
@@ -335,6 +335,7 @@ function renderBody(){
   return sel;
 }
 document.addEventListener("click", e => {
+  const sm = e.target.closest("[data-same]"); if (sm){ const l = lastFor(sm.dataset.same); if (!l) return; const d = draft[sm.dataset.same] || {}; draft[sm.dataset.same] = (d.kg === l.kg && d.reps === l.reps) ? {} : {kg:l.kg, reps:l.reps}; render(); return; }
   const p = e.target.closest("[data-pick]"); if (p){ pick = p.dataset.pick; draft = {}; render(); return; }
   const s = e.target.closest("[data-str]"); if (s){ strEx = s.dataset.str; render(); return; }
   const f = e.target.closest("[data-fuel]"); if (f){ const d = todayIso(), cur = Object.assign({}, get("fuel", d) || {}); cur[f.dataset.fuel] = !cur[f.dataset.fuel]; cur.date = d; set("fuel", d, cur); }
@@ -377,22 +378,28 @@ function renderMoney(){
   $("mo-income").innerHTML = '<div class="lab"><span>Coming in · FOCUS invoices</span><span>' + yr + ' so far ' + eur(ytd) + ' · ≈ ' + eur(ytd*(1-TAX)) + ' net</span></div>' + (sel ? '<div class="focus-s">' + esc(sel.m) + ' · ' + eur(sel.v) + (sel === best ? " · best month" : "") + '</div><div class="small">≈ ' + eur(sel.v*(1-TAX)) + ' after URSSAF and income tax (28.5%) · ' + eur(sel.v*TAX) + ' to set aside</div>' : "") + '<div class="bars">' + months.map((x,i) => '<button class="bar1' + (i === moMonth ? " on" : "") + '" data-mo="' + i + '" style="height:' + Math.round(x.v/hi*100) + '%" aria-label="' + esc(x.m + " " + eur(x.v)) + '"></button>').join("") + '</div><div class="bl">' + months.map(x => '<span>' + esc(x.m.slice(0,1)) + '</span>').join("") + '</div><div class="small" style="margin-top:6px">Tap a bar. Updated from your invoice each month.</div>';
   // Where it goes
   $("mo-burn").textContent = eur(burn);
-  $("mo-parts").innerHTML = ((m.burn || {}).parts || []).map(p => { const isSubs = p === subsPart(m);
-    return '<details' + (isSubs ? ' id="mo-subs"' : '') + '><summary class="row"><span class="t">' + esc(p.t) + '<span>' + esc(isSubs ? "Keep or cut each one" : (p.items || []).map(i => i.t).slice(0,3).join(", ")) + '</span></span><span class="' + (/not itemised/i.test(p.t) ? "warn" : "") + '">' + esc(p.v) + ' ›</span></summary>' +
+  const gap = ((m.burn || {}).parts || []).find(p => /not itemised/i.test(p.t));
+  $("mo-parts").innerHTML = ((m.burn || {}).parts || []).filter(p => p !== gap).map(p => { const isSubs = p === subsPart(m);
+    return '<details' + (isSubs ? ' id="mo-subs"' : '') + '><summary class="row"><span class="t">' + esc(p.t) + '<span>' + esc(isSubs ? "Keep or cut each one" : (p.items || []).map(i => i.t).slice(0,3).join(", ")) + '</span></span><span class="' + (/not itemised/i.test(p.t) ? "warn" : "") + '">' + esc(p.v) + ' ›</span></summary>' + (isSubs && (m.subRules || []).length ? '<div class="subrules">' + m.subRules.map(r => '<div>' + esc(r) + '</div>').join("") + '</div>' : "") +
       (p.items || []).map(i => { const id = slug(i.t), cut = !!cuts[id];
         return '<div class="row sub"><span class="t">' + esc(i.t) + (isSubs && num(i.v) ? '<span>' + eur(num(i.v)*12) + ' a year</span>' : "") + '</span><span class="rt">' + esc(i.v) + (isSubs && num(i.v) ? '<span class="kc"><button class="' + (cut ? "" : "sel") + '" data-keep="' + esc(id) + '">Keep</button><button class="' + (cut ? "sel cut" : "") + '" data-cut="' + esc(id) + '" data-cutname="' + esc(i.t) + '">Cut</button></span>' : "") + '</span></div>'; }).join("") + '</details>'; }).join("");
+  if (gap) $("mo-parts").innerHTML += '<div class="small" style="padding-top:8px">The total includes ' + esc(gap.v) + ' not itemised yet: eating out, outings, the rest.</div>';
   const cutSum = (subsPart(m) ? subsPart(m).items : []).filter(i => cuts[slug(i.t)]).reduce((a,i) => a + num(i.v), 0);
   $("mo-toast").textContent = cutSum ? "Cutting saves " + eur(cutSum) + " a month, " + eur(cutSum*12) + " a year. Each cut is on your Admin list." : "";
   // Coming soon (planned costs)
   const soon = m.soon || [];
   $("mo-soon").hidden = !soon.length;
-  $("mo-soon").innerHTML = '<div class="lab"><span>Coming soon</span><span>planned</span></div>' + soon.map(x => '<div class="row"><span class="t">' + esc(x.t) + '<span>' + esc(x.when || "") + '</span></span><span>' + esc(x.v) + '</span></div>').join("");
+  $("mo-soon").innerHTML = '<div class="lab"><span>Coming soon</span><span>decided, priced, next 3 months</span></div>' + soon.map(x => '<div class="row"><span class="t">' + esc(x.t) + '<span>' + esc(x.when || "") + '</span></span><span>' + esc(x.v) + '</span></div>').join("");
   // Ways to save
   const sv = m.save || [];
   $("mo-save").hidden = !sv.length;
   const sl = m.saveLog || {}, mNow = todayIso().slice(0,7), MS = ["2026-11","2026-12","2027-01","2027-02","2027-03","2027-04"];
   $("mo-save").innerHTML = '<div class="lab"><span>Ways to save</span><span>' + esc(m.saveTotal || "") + '</span></div>' + sv.map((x,i) => { const k = x.k || String(i), log = sl[k] || {};
     return '<div class="srow' + (x.done ? " sdone" : "") + '"><b>' + esc(x.v) + '</b><span>' + esc(x.t) + (x.done ? ' <em class="tag">done ✓</em>' : "") + '<span class="mdots">' + MS.map(mo => '<button class="md' + (log[mo] ? " on" : "") + (mo === mNow ? " now" : "") + '"' + (mo > mNow ? " disabled" : "") + ' data-sl="' + esc(k) + '" data-mo2="' + mo + '">' + MONTHS[Number(mo.slice(5))-1].slice(0,3) + '</button>').join("") + '</span></span></div>'; }).join("") + '<div class="small" style="margin-top:6px">Kept it that month? Tap the month.</div>';
+  // Die with Zero (27 Nov 2026, his idea)
+  const dz = m.dwz || null;
+  $("mo-dwz").hidden = !dz;
+  if (dz) $("mo-dwz").innerHTML = '<div class="lab"><span>Die with Zero</span><span>memory dividends</span></div><div class="focus-s">' + esc(dz.line || "") + '</div>' + (dz.note ? '<div class="small" style="margin-top:4px">' + esc(dz.note) + '</div>' : "") + (dz.for || []).map(x => '<div class="row"><span class="t">' + esc(x.t) + '<span>' + esc(x.w || "") + '</span></span></div>').join("");
   // Big wants
 
 }
@@ -411,7 +418,8 @@ document.addEventListener("click", e => {
 });
 
 /* ---------- Think ---------- */
-let openTheme = null, linkNote = null, openObs = null;
+let openTheme = null, linkNote = null, openObs = null, thinkObsOpen = false;
+document.addEventListener("toggle", e => { if (e.target.closest && e.target.closest("#think-obs")) thinkObsOpen = e.target.open; }, true);
 function renderThink(){
   const meta = get("meta","think") || {}, threads = all("threads"), thoughts = all("thoughts");
   const liveT = threads.filter(t => t.state !== "landed" && t.state !== "letgo").sort((a,b) => (a.order||0) - (b.order||0));
@@ -421,13 +429,20 @@ function renderThink(){
   $("think-mal").hidden = !mq.length && !mal.finished;
   $("think-mal").innerHTML = '<div class="lab"><span>Questions from Malmasson</span>' + (mal.finished ? '<button class="link" data-copy="finished">Copy this week\'s text</button>' : "") + '</div>' + mq.map(x => '<div class="mq"><span>' + esc(x.q) + '</span><em>' + esc(x.when || "") + '</em></div>').join("");
     ['finished','loose'].filter(k => mal[k]).map(k => '<div class="msg"><div class="small">' + (k === "finished" ? "Ready to send" : "Fill in yourself") + '</div><p>' + esc(mal[k]) + '</p><button class="btn sm" data-copy="' + k + '">Copy</button></div>').join("") + '</details>';
-  // Observations
+  // At a glance (27 Nov 2026, his ask: Think was too wordy to glance at)
   const obs = meta.observations || [];
+  const odKey = String(meta.obsDate || "").replace(/\W/g,""), nxI = obs.findIndex(o => o.kind === "next"), nx = obs[nxI], bn = obs.find(o => o.kind === "bottleneck");
+  const nxGot = nx && !!get("wins", "obs-" + odKey + "-" + nxI), age = meta.nextSet ? Math.max(0, Math.round((new Date(todayIso() + "T12:00:00") - new Date(meta.nextSet + "T12:00:00"))/86400000)) : null;
+  const gl = [["Working on", meta.working || home().seasonGoal || ""], ["Bottleneck", bn ? (bn.s || bn.step) : ""]].filter(x => x[1]);
+  $("think-glance").hidden = !gl.length && !nx;
+  $("think-glance").innerHTML = '<div class="lab"><span>At a glance</span><span>' + esc(meta.obsDate || "") + '</span></div>' + gl.map(x => '<div class="gl"><span class="ok">' + x[0] + '</span><span>' + esc(x[1]) + '</span></div>').join("") +
+    (nx ? '<button class="gl glnext' + (nxGot ? " done" : "") + '" data-obsstep="' + nxI + '"><span class="ok">Next move</span><span>' + esc(nx.step || nx.s || nx.t) + '<small>' + (nxGot ? "Done ✓ · a new one comes with the next sync" : age == null ? "tap when done · +10" : "set " + (age === 0 ? "today" : age === 1 ? "yesterday" : age + " days ago") + " · tap when done · +10") + '</small></span><span class="c">' + (nxGot ? "✓" : "") + '</span></button>' : "");
+  // Observations (the detail, folded)
   $("think-obs").hidden = !obs.length;
   const od = meta.obsDate || "", wins = all("wins");
-  $("think-obs").innerHTML = '<div class="lab"><span>Where you are</span><span>' + esc(od) + '</span></div>' + obs.map((o,i) => { const wid = "obs-" + od.replace(/\W/g,"") + "-" + i, on = openObs === i, got = !!get("wins", wid);
+  $("think-obs").innerHTML = '<details' + (thinkObsOpen ? " open" : "") + '><summary class="lab" style="margin:0"><span>Where you are · the detail</span><span>▾</span></summary><div style="margin-top:8px">' + obs.map((o,i) => { const wid = "obs-" + od.replace(/\W/g,"") + "-" + i, on = openObs === i, got = !!get("wins", wid);
     return '<div class="obs ' + esc(o.kind || "") + (on ? " open" : "") + '"><button class="obshd" data-obs="' + i + '"><span class="ok">' + esc(({bottleneck:"Bottleneck", pattern:"Pattern", next:"Next move"})[o.kind] || "Note") + '</span><span>' + esc(o.t) + '</span><span class="chev">' + (on ? "−" : "+") + '</span></button>' +
-      (on ? '<div class="obsx">' + (o.why ? '<div class="small"><b>Where I saw it</b> · ' + esc(o.why) + '</div>' : "") + (o.step ? '<button class="obsstep' + (got ? " done" : "") + '" data-obsstep="' + i + '"><span class="c">' + (got ? "✓" : "") + '</span><span>' + esc(o.step) + '</span><span class="xp">+10</span></button>' : "") + '</div>' : "") + '</div>'; }).join("");
+      (on ? '<div class="obsx">' + (o.why ? '<div class="small"><b>Where I saw it</b> · ' + esc(o.why) + '</div>' : "") + (o.step ? '<button class="obsstep' + (got ? " done" : "") + '" data-obsstep="' + i + '"><span class="c">' + (got ? "✓" : "") + '</span><span>' + esc(o.step) + '</span><span class="xp">+10</span></button>' : "") + '</div>' : "") + '</div>'; }).join("") + '</div></details>';
   // Web
   const W = 330, H = 300, cx = W/2, cy = H/2, R = 112, n = liveT.length || 1;
   const pos = {}; liveT.forEach((t,i) => { const a = -Math.PI/2 + i/n*2*Math.PI; pos[t.id] = {x: cx + R*Math.cos(a), y: cy + R*Math.sin(a)}; });

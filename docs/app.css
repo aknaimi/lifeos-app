@@ -288,3 +288,15 @@ form.g .full{grid-column:1/-1}
 .row .t .chip span{display:inline;font-size:inherit}
 .row .t .chip.sm{min-height:34px;padding:6px 11px;font-size:13px;color:var(--fg)}
 .wb{cursor:pointer}
+
+/* Think glance, money rules, gym tick (27 Nov 2026) */
+.gl{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px 0;border-top:1px solid var(--line);font-size:15px;line-height:1.4;width:100%;text-align:left;background:none;border-left:0;border-right:0;border-bottom:0;color:inherit;font-family:inherit}
+#think-glance .lab + .gl{border-top:0}
+.gl .ok{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:3px}
+.gl small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.glnext{cursor:pointer}.glnext .ok{color:var(--glow)}
+.glnext .c{width:24px;height:24px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:13px}
+.glnext.done .c{background:var(--glow);border-color:var(--glow);color:#000}
+.subrules{padding:8px 0 4px 10px;font-size:13px;color:var(--muted);line-height:1.5}
+.same{width:40px;min-height:40px;border-radius:10px;border:1px solid var(--line);background:var(--soft);color:var(--muted);cursor:pointer;font-size:15px}
+.same.on{background:var(--glow);border-color:var(--glow);color:#000}
