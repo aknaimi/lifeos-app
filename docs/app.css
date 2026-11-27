@@ -336,3 +336,15 @@ form.g .full{grid-column:1/-1}
 .agroup summary::-webkit-details-marker{display:none}
 .agroup[open] summary{color:var(--glow)}
 .panel.urgent .lab span:first-child{color:var(--warn)}
+
+/* Breathe (27 Nov 2026) */
+.sheet.breathe .sheetin{max-height:92vh}
+.orbwrap{position:relative;height:280px;display:grid;place-items:center;margin:6px 0 14px}
+.orb{width:110px;height:110px;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(109,255,176,.55),rgba(109,255,176,.12) 70%);box-shadow:0 0 40px rgba(109,255,176,.25);transform:scale(1);transition-property:transform;transition-timing-function:ease-in-out}
+.orb.big{transform:scale(2.3)}
+.orbtxt{position:absolute;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;pointer-events:none}
+.orbtxt b{font-family:"Instrument Serif",serif;font-weight:400;font-size:30px}
+.brpats{flex-direction:column;align-items:stretch}
+.brpats .chip{text-align:left}
+@media (prefers-reduced-motion:reduce){.orb{transition-duration:0s!important}}
+.brpats .chip{border-radius:14px;color:inherit;font-family:inherit}

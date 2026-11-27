@@ -173,7 +173,7 @@ function renderHome(){
 
   // Daily habits
   const hb = habits(), hd = (get("daily", todayIso()) || {}).done || [], wkIsos = weekDays().map(localIso).filter(d => d <= todayIso());
-  $("home-daily").innerHTML = '<div class="lab"><span>Daily · ' + hb.filter(x => hd.includes(x.id)).length + ' of ' + hb.length + ' today</span><button class="link" id="home-editHabs">Edit</button></div><div class="habs">' +
+  $("home-daily").innerHTML = '<div class="lab"><span>Daily · ' + hb.filter(x => hd.includes(x.id)).length + ' of ' + hb.length + ' today</span><span><button class="link" id="home-breathe">Breathe</button> · <button class="link" id="home-editHabs">Edit</button></span></div><div class="habs">' +
     hb.map(x => { const on = hd.includes(x.id), n = wkIsos.filter(d => ((get("daily", d) || {}).done || []).includes(x.id)).length;
       return '<button class="hab' + (on ? " on" : "") + '" data-hab="' + esc(x.id) + '" aria-pressed="' + on + '"><span class="hc">' + esc(x.em || "•") + '</span><span class="hn">' + esc(x.t) + '</span><span class="hw">' + n + ' of ' + wkIsos.length + '</span></button>'; }).join("") + '</div>';
   // Quests (only this week's; stale ones hide until Saturday)
@@ -237,7 +237,9 @@ document.addEventListener("click", e => {
       if (last) del("wins", last); n2[id] = Math.max(0, (n2[id] || 1) - 1); ws2[id] = l2; w2.n = n2; w2.wins = ws2; if (!n2[id]) w2.done = (w2.done || []).filter(x => x !== id); set("offline", mon, w2); });
     return; }
   const hbb = e.target.closest("[data-hab]");
+  if (hbb && hbb.dataset.hab === "breath" && !((get("daily", todayIso()) || {}).done || []).includes("breath")){ brOpen(); return; }
   if (hbb){ const d = todayIso(), cur = Object.assign({date:d}, get("daily", d) || {}), done = (cur.done || []).slice(), i = done.indexOf(hbb.dataset.hab); if (i >= 0) done.splice(i,1); else { done.push(hbb.dataset.hab); pop("✓", hbb); } cur.done = done; set("daily", d, cur); return; }
+  if (e.target.closest("#home-breathe")){ brOpen(); return; }
   if (e.target.closest("#home-editHabs")){ habEdit = habits().map(x => Object.assign({}, x)); habRender(); $("hsheet").hidden = false; return; }
   const sh = e.target.closest("[data-shop]"); if (sh){ const it = get("shop", sh.dataset.shop); if (!it) return; update("shop", sh.dataset.shop, {done:!it.done, doneAt:it.done ? "" : nowIso()});
     if (!it.done){ const u = ((get("meta","shopUsual") || {}).items || []).filter(t => t.toLowerCase() !== it.t.toLowerCase()); set("meta","shopUsual",{items:[it.t].concat(u).slice(0,30)}); } return; }
@@ -280,6 +282,40 @@ $("gsheet-form").addEventListener("submit", e => { e.preventDefault();
   if (!t){ $("gsheet-note").textContent = "Type the idea, then 'for' and who."; return; }
   const id = add("giftIdeas", {who, t, at:nowIso(), given:false}); $("gsheet").hidden = true;
   toast($("home-tileToast"), "Saved" + (who ? " for " + esc(who) : "") + ".", () => del("giftIdeas", id)); });
+/* ---------- Breathe (27 Nov 2026, his ask: "build it into Life OS", morning priming) ---------- */
+const BR_PAT = {box:{n:"Box", d:"4 in · 4 hold · 4 out · 4 hold", ph:[["Breathe in",4,1],["Hold",4,1],["Breathe out",4,0],["Hold",4,0]]},
+  calm:{n:"Calm", d:"5.5 in · 5.5 out", ph:[["Breathe in",5.5,1],["Breathe out",5.5,0]]},
+  sleep:{n:"4-7-8", d:"4 in · 7 hold · 8 out", ph:[["Breathe in",4,1],["Hold",7,1],["Breathe out",8,0]]}};
+let brT = null, brTick = null, brLock = null, brEnd = 0, brStart = 0;
+const brCfg = () => Object.assign({p:"box", m:3}, ls("lifeos-breath") || {});
+function brPick(){ const c = brCfg();
+  $("br-pats").innerHTML = Object.entries(BR_PAT).map(([k,v]) => '<button class="chip' + (c.p === k ? " on" : "") + '" data-brp="' + k + '"><b>' + v.n + '</b><span class="small"> ' + v.d + '</span></button>').join("");
+  $("br-mins").innerHTML = [1,3,5,10].map(m => '<button class="chip' + (c.m === m ? " on" : "") + '" data-brm="' + m + '">' + m + ' min</button>').join("");
+  $("br-setup").hidden = false; $("br-run").hidden = true; $("br-word").textContent = "Ready"; $("br-left").textContent = ""; $("br-orb").style.transitionDuration = "0s"; $("br-orb").classList.remove("big"); }
+function brOpen(){ brPick(); $("bsheet").hidden = false; }
+async function brGo(){ const c = brCfg(), pat = BR_PAT[c.p].ph; $("br-setup").hidden = true; $("br-run").hidden = false;
+  try { if (navigator.wakeLock) brLock = await navigator.wakeLock.request("screen"); } catch(e){}
+  brStart = Date.now(); brEnd = brStart + c.m*60000; let i = 0;
+  const step = () => { if (Date.now() >= brEnd && i % pat.length === 0) return brDone(true);
+    const [w, sec, big] = pat[i % pat.length]; $("br-word").textContent = w; const o = $("br-orb"); o.style.transitionDuration = sec + "s"; o.classList.toggle("big", !!big); i++; brT = setTimeout(step, sec*1000); };
+  const left = () => { const r = Math.max(0, Math.ceil((brEnd - Date.now())/1000)); $("br-left").textContent = r ? Math.floor(r/60) + ":" + String(r%60).padStart(2,"0") : "last breath"; };
+  left(); brTick = setInterval(left, 1000); step(); }
+function brStop(){ clearTimeout(brT); clearInterval(brTick); brT = brTick = null; try { brLock && brLock.release(); } catch(e){} brLock = null; }
+function brDone(full){ const mins = Math.round((Date.now() - brStart)/6000)/10; brStop();
+  if (mins >= 1){ const d = todayIso(), cur = Object.assign({date:d}, get("daily", d) || {}), done = (cur.done || []).slice();
+    if (habits().some(x => x.id === "breath") && !done.includes("breath")) done.push("breath");
+    cur.done = done; cur.breath = Math.round(((cur.breath || 0) + mins)*10)/10; set("daily", d, cur); }
+  $("br-word").textContent = mins >= 1 ? (full ? "Done. " : "Stopped. ") + Math.round(mins) + " min" : "Stopped"; $("br-left").textContent = mins >= 1 ? "Breathwork ticked for today" : "Under a minute, nothing logged";
+  $("br-orb").style.transitionDuration = "1.5s"; $("br-orb").classList.remove("big"); $("br-run").hidden = true;
+  setTimeout(() => { if (!brT) { $("br-setup").hidden = false; } }, 2500); }
+$("bsheet").addEventListener("click", e => {
+  const pp = e.target.closest("[data-brp]"), mm = e.target.closest("[data-brm]");
+  if (pp){ ls("lifeos-breath", Object.assign(brCfg(), {p:pp.dataset.brp})); brPick(); return; }
+  if (mm){ ls("lifeos-breath", Object.assign(brCfg(), {m:Number(mm.dataset.brm)})); brPick(); return; }
+  if (e.target.closest("#br-go")){ brGo(); return; }
+  if (e.target.closest("#br-stop")){ brDone(false); return; }
+  if (e.target.closest("#br-close") || e.target === $("bsheet")){ if (brT) brDone(false); brStop(); $("bsheet").hidden = true; }
+});
 function habRender(){ $("hsheet-rows").innerHTML = habEdit.map((x,i) => '<div class="er"><input class="field" data-hi="' + i + '" data-hf="em" value="' + esc(x.em || "") + '" aria-label="Emoji" style="width:56px;text-align:center"><input class="field" data-hi="' + i + '" data-hf="t" value="' + esc(x.t) + '" aria-label="Habit"><button class="x" data-hdel="' + i + '" aria-label="Remove ' + esc(x.t) + '">×</button></div>').join(""); }
 $("hsheet-rows").addEventListener("input", e => { const i = e.target.dataset.hi; if (i != null) habEdit[i][e.target.dataset.hf] = e.target.value; });
 $("hsheet-rows").addEventListener("click", e => { const d = e.target.closest("[data-hdel]"); if (d){ habEdit.splice(Number(d.dataset.hdel),1); habRender(); } });

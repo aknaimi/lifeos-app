@@ -14,7 +14,7 @@
 <link rel="icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=11">
+<link rel="stylesheet" href="app.css?v=12">
 </head>
 <body>
 <div class="sync" id="sync" hidden></div>
@@ -192,6 +192,12 @@
 </div></div>
 
 <div class="sheet" id="tsheet" hidden><div class="sheetin"><div class="lab"><span>Theme</span><button class="link" id="tsheet-done">Done</button></div><div id="tsheet-body"></div></div></div>
+<div class="sheet breathe" id="bsheet" hidden><div class="sheetin">
+  <div class="lab"><span class="focus-s" style="color:var(--fg)">Breathe</span><button class="link" id="br-close">Close</button></div>
+  <div class="orbwrap"><div class="orb" id="br-orb"></div><div class="orbtxt"><b id="br-word">Ready</b><span class="small" id="br-left"></span></div></div>
+  <div id="br-setup"><div class="chips brpats" id="br-pats"></div><div class="chips" id="br-mins" style="margin-top:10px"></div><button class="btn solid" id="br-go" style="width:100%;margin-top:14px">Start</button></div>
+  <div id="br-run" hidden><button class="btn" id="br-stop" style="width:100%">Stop</button></div>
+</div></div>
 <div class="sheet" id="hsheet" hidden><div class="sheetin">
   <div class="lab"><span class="focus-s" style="color:var(--fg)">Your daily habits</span><button class="link" id="hsheet-done">Done</button></div>
   <div class="small" style="margin-bottom:8px">4 to 6 is the sweet spot. Rename, remove, or add one.</div>
@@ -229,6 +235,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
