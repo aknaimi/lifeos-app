@@ -283,3 +283,8 @@ form.g .full{grid-column:1/-1}
 .wishbig .wpics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
 .wishbig .wpics img{width:100%;aspect-ratio:1;object-fit:contain;background:#f1f1ee;border-radius:12px}
 .wrow{grid-template-columns:64px minmax(0,1fr) auto}.wrow img,.wrow .gph{width:64px;height:64px}
+/* birthday quick actions inside a row (27 Nov 2026) */
+.row .t .chips{display:flex;gap:6px}
+.row .t .chip span{display:inline;font-size:inherit}
+.row .t .chip.sm{min-height:34px;padding:6px 11px;font-size:13px;color:var(--fg)}
+.wb{cursor:pointer}

@@ -186,7 +186,7 @@ function renderHome(){
   if (todayIso() <= wakeUntil()){
     const wd = isos.map(d => get("wake", d)), today = get("wake", todayIso());
     const hgt = t => { if (!t) return 0; const [H,M] = t.split(":").map(Number), mins = H*60+M; return Math.max(12, Math.min(100, 100 - (mins - 330)/3)); };
-    fourth = '<button class="tile3 wake" id="home-wake"><div class="hd"><span>Wake · goal 06:00</span></div><div class="wbars">' + wd.map((w,i) => '<span class="wb' + (w ? (w.t <= "06:15" ? " ok" : " late") : "") + (isos[i] === todayIso() ? " today" : "") + '"><i style="height:' + (w ? hgt(w.t) : 8) + '%"></i><em>' + "MTWTFSS"[i] + '</em></span>').join("") + '</div><div class="small">' + (today ? "Up at <b>" + esc(today.t) + "</b> today" : "Tap when you're up") + '</div></button>';
+    fourth = '<button class="tile3 wake" id="home-wake"><div class="hd"><span>Wake · goal 06:00</span></div><div class="wbars">' + wd.map((w,i) => '<span class="wb' + (w ? (w.t <= "06:15" ? " ok" : " late") : "") + (isos[i] === todayIso() ? " today" : "") + '" data-wd="' + isos[i] + '"><i style="height:' + (w ? hgt(w.t) : 8) + '%"></i><em>' + "MTWTFSS"[i] + '</em></span>').join("") + '</div><div class="small">' + (today ? "Up at <b>" + esc(today.t) + "</b> today · tap a day to change it" : "Tap when you're up · tap a day to fix it") + '</div></button>';
   } else {
     const steps = all("admin"), nx = steps.filter(s => s.state !== "done").sort((a,c) => (a.order||0)-(c.order||0)).find(s => s.state === "you" || s.state === "due");
     fourth = '<a class="tile3" href="#admin"><div class="hd"><span>Admin</span><span>›</span></div><div><div class="n">' + esc(nx ? nx.t.split(" ").slice(0,2).join(" ") : "Clear") + '</div><div class="small">' + steps.filter(s => s.state === "done").length + ' of ' + steps.length + ' done</div></div></a>';
@@ -202,8 +202,9 @@ function renderHome(){
 
   // Offline
   const off = get("meta","offline") || {}, wkOff = get("offline", mon) || {}, offDone = wkOff.done || [];
-  const offT = r => { const on = offDone.includes(r.id), bg = r.img ? "url('" + esc(r.img) + "')" : esc(r.bg || "#555");
-    return '<button class="tile' + (on ? " done" : "") + '" data-off="' + esc(r.id) + '" aria-pressed="' + on + '" style="background:' + bg + ';background-size:cover;background-position:center">' + (r.img ? "" : '<span class="em">' + esc(r.em || "") + '</span>') + '<span class="ck">' + (on ? "✓" : "") + '</span><span class="nm">' + esc(r.name) + (on ? "<small>Done this week · +10</small>" : "") + '</span></button>'; };
+  const offN = id => (wkOff.n || {})[id] || (offDone.includes(id) ? 1 : 0);
+  const offT = r => { const c = offN(r.id), on = c > 0, bg = r.img ? "url('" + esc(r.img) + "')" : esc(r.bg || "#555");
+    return '<button class="tile' + (on ? " done" : "") + '" data-off="' + esc(r.id) + '" aria-pressed="' + on + '" style="background:' + bg + ';background-size:cover;background-position:center">' + (r.img ? "" : '<span class="em">' + esc(r.em || "") + '</span>') + '<span class="ck">' + (c > 1 ? "×" + c : on ? "✓" : "") + '</span><span class="nm">' + esc(r.name) + (on ? "<small>" + (c > 1 ? c + " times" : "Once") + " this week · +" + 10*c + "</small>" : "") + '</span></button>'; };
   const rc = off.recharges || [];
   $("home-strip").innerHTML = '<div class="offbig">' + rc.map(offT).join("") + '</div>';
 
@@ -217,14 +218,19 @@ document.addEventListener("click", e => {
   if (q){ const mon = mondayIso(), qd = Object.assign({}, get("quests", mon) || {}), d = (qd.done || []).slice(), i = Number(q.dataset.q), at = d.indexOf(i); if (at >= 0) d.splice(at,1); else d.push(i); qd.done = d; set("quests", mon, qd); return; }
   if (e.target.closest("#home-claim")){ const q2 = questsNow(), mon = mondayIso(); logWin({key:"quests", label:"Quest stack complete", xp:q2.bonus || 50}, $("home-questToast")); update("quests", mon, {claimed:true}); return; }
   const t = e.target.closest("#home-strip .tile");
-  if (t){ const mon = mondayIso(), wk = Object.assign({}, get("offline", mon) || {}), d = (wk.done || []).slice(), at = d.indexOf(t.dataset.off), wins = Object.assign({}, wk.wins || {});
-    const r = ((get("meta","offline") || {}).recharges || []).find(x => x.id === t.dataset.off) || {name:t.dataset.off};
-    if (at >= 0){ d.splice(at,1); if (wins[t.dataset.off]) del("wins", wins[t.dataset.off]); delete wins[t.dataset.off]; $("home-offToast").textContent = ""; }
-    else { d.push(t.dataset.off); wins[t.dataset.off] = logWin({key:TILE_WIN[t.dataset.off] || "offline", label:r.name, xp:10}, null, t); $("home-offToast").textContent = "Nice. +10."; }
-    wk.done = d; wk.wins = wins; set("offline", mon, wk); return; }
+  if (t){ const mon = mondayIso(), id = t.dataset.off, wk = Object.assign({}, get("offline", mon) || {}), d = (wk.done || []).slice(), n = Object.assign({}, wk.n || {}), wins = Object.assign({}, wk.wins || {});
+    const r = ((get("meta","offline") || {}).recharges || []).find(x => x.id === id) || {name:id};
+    const list = [].concat(wins[id] || []); if (!n[id] && d.includes(id)) n[id] = 1;
+    const wid = logWin({key:TILE_WIN[id] || "offline", label:r.name, xp:10}, null, t); list.push(wid); n[id] = (n[id] || 0) + 1; if (!d.includes(id)) d.push(id);
+    wk.done = d; wk.n = n; wins[id] = list; wk.wins = wins; set("offline", mon, wk);
+    toast($("home-offToast"), esc(r.name) + (n[id] > 1 ? ", " + n[id] + " this week" : "") + ". +10.", () => { const w2 = Object.assign({}, get("offline", mon) || {}), n2 = Object.assign({}, w2.n || {}), ws2 = Object.assign({}, w2.wins || {}), l2 = [].concat(ws2[id] || []), last = l2.pop();
+      if (last) del("wins", last); n2[id] = Math.max(0, (n2[id] || 1) - 1); ws2[id] = l2; w2.n = n2; w2.wins = ws2; if (!n2[id]) w2.done = (w2.done || []).filter(x => x !== id); set("offline", mon, w2); });
+    return; }
   const wk = e.target.closest("#home-wake");
-  if (wk){ const d = todayIso(), cur = get("wake", d), n = new Date();
-    if (!cur && n.getHours() < 12){ const t2 = pad(n.getHours()) + ":" + pad(n.getMinutes()); set("wake", d, {date:d, t:t2, at:nowIso()}); pop(t2 <= "06:15" ? "On goal ✓" : "Up " + t2, wk); $("home-tileToast").textContent = "Up at " + t2 + ". Logged. Tap again to change it."; return; }
+  if (wk){ const wdb = e.target.closest("[data-wd]"), d = wdb ? wdb.dataset.wd : todayIso(), cur = get("wake", d), n = new Date();
+    if (wdb && d > todayIso()) return;
+    wakeDay = d; $("wsheet-q").textContent = d === todayIso() ? "What time were you up?" : "What time were you up on " + new Date(d + "T12:00:00").toLocaleDateString("en-GB",{weekday:"long"}) + "?";
+    if (!wdb && !cur && n.getHours() < 12){ const t2 = pad(n.getHours()) + ":" + pad(n.getMinutes()); set("wake", d, {date:d, t:t2, at:nowIso()}); pop(t2 <= "06:15" ? "On goal ✓" : "Up " + t2, wk); $("home-tileToast").textContent = "Up at " + t2 + ". Logged. Tap again to change it."; return; }
     $("wsheet-t").value = cur ? cur.t : "06:00"; $("wsheet").hidden = false; return; }
   const buy = e.target.closest("[data-buy]");
   if (buy){ const g = get("giftIdeas", buy.dataset.buy); if (!g) return; const id = buy.dataset.buy, now = nowIso();
@@ -237,9 +243,10 @@ document.addEventListener("click", e => {
 $("wsheet-cancel").addEventListener("click", () => { $("wsheet").hidden = true; });
 $("wsheet").addEventListener("click", e => { if (e.target.id === "wsheet") $("wsheet").hidden = true; });
 $("wsheet-t").addEventListener("input", () => { const v = $("wsheet-t").value; $("wsheet-note").textContent = v && v <= "06:15" ? "On goal. Nice." : "Goal: 06:00"; });
-$("wsheet-save").addEventListener("click", () => { const v = $("wsheet-t").value, d = todayIso(); if (!/^\d{2}:\d{2}$/.test(v)) return; set("wake", d, Object.assign({}, get("wake", d) || {}, {date:d, t:v, at:nowIso()})); $("wsheet").hidden = true; $("home-tileToast").textContent = "Up at " + v + ". Saved."; });
+$("wsheet-save").addEventListener("click", () => { const v = $("wsheet-t").value, d = wakeDay || todayIso(); if (!/^\d{2}:\d{2}$/.test(v)) return; set("wake", d, Object.assign({}, get("wake", d) || {}, {date:d, t:v, at:nowIso()})); $("wsheet").hidden = true; $("home-tileToast").textContent = "Up at " + v + (d === todayIso() ? "" : " on " + fmt(d)) + ". Saved."; });
 $("home-ring").addEventListener("click", () => { $("home-stats").open = !$("home-stats").open; });
 
+let wakeDay = null;
 /* Edit win buttons */
 let editRows = null;
 function sheetRender(){ $("sheet-rows").innerHTML = editRows.map((w,i) => '<div class="er"><input class="field" data-ei="' + i + '" data-ef="label" value="' + esc(w.label) + '" aria-label="Win name"><input class="field" data-ei="' + i + '" data-ef="xp" value="' + esc(w.xp) + '" inputmode="numeric" aria-label="XP"><button class="x" data-edel="' + i + '" aria-label="Remove ' + esc(w.label) + '">×</button></div>').join(""); }
@@ -316,7 +323,7 @@ function renderBody(){
   $("body-chart").innerHTML = spark(pts, {label:strEx + " weight over time", empty:"Log " + esc(strEx || "an exercise") + " twice and your strength line appears here."});
   $("body-strPick").innerHTML = names.map(n => '<button class="chip sm' + (n === strEx ? " on" : "") + '" data-str="' + esc(n) + '">' + esc(n) + '</button>').join("");
   // Fuel
-  const F = [{k:"breakfast",t:"Breakfast"},{k:"lunch",t:"Lunch"},{k:"dinner",t:"Dinner"},{k:"shake",t:"Protein yogurt"},{k:"creatine",t:"Creatine 10 g"}];
+  const F = [{k:"water",t:"Water on waking"},{k:"breakfast",t:"Breakfast"},{k:"lunch",t:"Lunch"},{k:"dinner",t:"Dinner"},{k:"shake",t:"Protein yogurt"},{k:"creatine",t:"Creatine 10 g"}];
   const td = get("fuel", todayIso()) || {};
   $("body-fuelN").textContent = "Food today · " + F.filter(f => td[f.k]).length + " of " + F.length;
   $("body-fuel").innerHTML = F.map(f => '<button class="chip sm' + (td[f.k] ? " on" : "") + '" data-fuel="' + esc(f.k) + '">' + (td[f.k] ? "✓ " : "") + esc(f.t) + '</button>').join("");
@@ -350,6 +357,7 @@ $("body-saveKg").addEventListener("click", () => { const v = parseFloat($("body-
 /* ---------- Money ---------- */
 function subsPart(m){ return ((m.burn || {}).parts || []).find(p => /subscri/i.test(p.t)); }
 function subsTotal(m){ const p = subsPart(m); if (!p) return 0; const s = (p.items || []).reduce((a,i) => a + num(i.v), 0); return s || num(p.v); }
+const TAX = 0.285; // French micro-entreprise, BNC libéral, 2026: URSSAF 26.1% + versement libératoire 2.2% + formation 0.2%. ACRE (asked for, not confirmed) would roughly halve the URSSAF part. Estimate.
 const BIG = ["Watches","Trips"];
 let moMonth = null;
 function renderMoney(){
@@ -366,7 +374,7 @@ function renderMoney(){
   const yr = String(new Date().getFullYear()), ytd = (m.months || []).filter(x => (x.y || inferYear(m.months, x)) === yr).reduce((a,x) => a + x.v, 0);
   if (moMonth == null || moMonth >= months.length) moMonth = months.length - 1;
   const sel = months[moMonth], best = months.reduce((a,x) => x.v > a.v ? x : a, {v:0});
-  $("mo-income").innerHTML = '<div class="lab"><span>Coming in · FOCUS invoices</span><span>' + yr + ' so far ' + eur(ytd) + '</span></div>' + (sel ? '<div class="focus-s">' + esc(sel.m) + ' · ' + eur(sel.v) + (sel === best ? " · best month" : "") + '</div>' : "") + '<div class="bars">' + months.map((x,i) => '<button class="bar1' + (i === moMonth ? " on" : "") + '" data-mo="' + i + '" style="height:' + Math.round(x.v/hi*100) + '%" aria-label="' + esc(x.m + " " + eur(x.v)) + '"></button>').join("") + '</div><div class="bl">' + months.map(x => '<span>' + esc(x.m.slice(0,1)) + '</span>').join("") + '</div><div class="small" style="margin-top:6px">Tap a bar. Updated from your invoice each month.</div>';
+  $("mo-income").innerHTML = '<div class="lab"><span>Coming in · FOCUS invoices</span><span>' + yr + ' so far ' + eur(ytd) + ' · ≈ ' + eur(ytd*(1-TAX)) + ' net</span></div>' + (sel ? '<div class="focus-s">' + esc(sel.m) + ' · ' + eur(sel.v) + (sel === best ? " · best month" : "") + '</div><div class="small">≈ ' + eur(sel.v*(1-TAX)) + ' after URSSAF and income tax (28.5%) · ' + eur(sel.v*TAX) + ' to set aside</div>' : "") + '<div class="bars">' + months.map((x,i) => '<button class="bar1' + (i === moMonth ? " on" : "") + '" data-mo="' + i + '" style="height:' + Math.round(x.v/hi*100) + '%" aria-label="' + esc(x.m + " " + eur(x.v)) + '"></button>').join("") + '</div><div class="bl">' + months.map(x => '<span>' + esc(x.m.slice(0,1)) + '</span>').join("") + '</div><div class="small" style="margin-top:6px">Tap a bar. Updated from your invoice each month.</div>';
   // Where it goes
   $("mo-burn").textContent = eur(burn);
   $("mo-parts").innerHTML = ((m.burn || {}).parts || []).map(p => { const isSubs = p === subsPart(m);
@@ -483,7 +491,7 @@ const inShort = n => n === 0 ? "Today" : n === 1 ? "Tmrw" : n < 7 ? new Date(Dat
 function renderPeople(){
   const ps = people();
   $("pe-next").innerHTML = ps.slice(0,5).map(p => { const ideas = openGifts().filter(g => g.who.toLowerCase() === p.name.toLowerCase());
-    return '<div class="row"><span class="t">' + esc(p.name) + '<span>birthday' + (ideas.length ? " · idea: " + esc(ideas[0].t) : p.days <= 14 ? " · a message or a gift?" : "") + '</span></span><span class="' + (p.days <= 7 ? "warn" : "small") + '">' + esc(p.days < 7 ? inShort(p.days) + " " + p.next.getDate() : p.next.getDate() + " " + MONTHS[p.next.getMonth()].slice(0,3)) + '</span></div>'; }).join("") || '<div class="empty">Birthdays show here after the first sync.</div>';
+    return '<div class="row"><span class="t">' + esc(p.name) + '<span>birthday' + (ideas.length ? " · idea: " + esc(ideas[0].t) : p.days <= 14 ? " · a message or a gift?" : "") + '</span>' + (p.days > 14 && !p.gentle ? '<span class="chips" style="margin-top:6px"><button class="chip sm" data-bcall="' + esc(p.name) + '">Called <span>+10</span></button><button class="chip sm" data-btext="' + esc(p.name) + '">Texted <span>+5</span></button><button class="chip sm" data-bgift="' + esc(p.name) + '">+ Gift idea</button></span>' : "") + '</span><span class="' + (p.days <= 7 ? "warn" : "small") + '">' + esc(p.days < 7 ? inShort(p.days) + " " + p.next.getDate() : p.next.getDate() + " " + MONTHS[p.next.getMonth()].slice(0,3)) + '</span></div>'; }).join("") || '<div class="empty">Birthdays show here after the first sync.</div>';
   const lastCall = all("wins").filter(w => w.key === "call" || w.key === "text" || w.key === "family").sort((a,c) => String(c.at).localeCompare(String(a.at)))[0];
   $("pe-callLast").textContent = lastCall ? "last one logged " + fmt(lastCall.date) : "nothing logged yet";
   const open = openGifts(), done = all("giftIdeas").filter(g => g.given || g.bought).sort((a,b) => String(b.boughtAt || b.givenAt || "").localeCompare(String(a.boughtAt || a.givenAt || ""))).slice(0,6);
@@ -510,6 +518,9 @@ $("bday-day").innerHTML = '<option value="">Day</option>' + [...Array(31)].map((
 $("bday-month").innerHTML = '<option value="">Month</option>' + MONTHS.map((m,i) => '<option value="' + (i+1) + '">' + m.slice(0,3) + "</option>").join("");
 document.addEventListener("click", e => {
   const d = e.target.closest("[data-bdel]"); if (d){ const P = get("meta","people") || {}, hidden = (P.hidden || []).concat([d.dataset.bdel]); update("meta","people",{hidden}); const b = all("birthdays").find(x => x.name === d.dataset.bdel); toast($("bday-toast"), "Removed " + esc(d.dataset.bdel) + ".", () => update("meta","people",{hidden:hidden.filter(x => x !== d.dataset.bdel)})); return; }
+  const bc = e.target.closest("[data-bcall]"); if (bc){ logWin({key:"call", label:"Called " + bc.dataset.bcall, xp:10}, $("bday-toast2"), bc); return; }
+  const bt = e.target.closest("[data-btext]"); if (bt){ logWin({key:"text", label:"Texted " + bt.dataset.btext, xp:5}, $("bday-toast2"), bt); return; }
+  const bg = e.target.closest("[data-bgift]"); if (bg){ const f = $("gifts-idea"); f.value = " for " + bg.dataset.bgift; f.scrollIntoView({behavior:"smooth", block:"center"}); f.focus(); f.setSelectionRange(0,0); return; }
   const dw = e.target.closest("[data-dw]"); if (dw){ logWin(({date:{key:"date", label:"Date", xp:100}, run:{key:"run", label:"Run club", xp:10}, event:{key:"event", label:"Event attended", xp:20}})[dw.dataset.dw] || {key:"opener", label:"Talked to someone new", xp:20}, $("pe-callToast"), dw); }
 });
 $("pe-called").addEventListener("click", () => logWin({key:"call", label:"Called someone I love", xp:10}, $("pe-callToast"), $("pe-called")));
