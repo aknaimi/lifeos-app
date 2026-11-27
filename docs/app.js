@@ -210,11 +210,6 @@ function renderHome(){
   $("home-wins").innerHTML = winButtons().map((w,i) => '<button class="chip" data-w="' + i + '">' + esc(w.label) + '<span>+' + w.xp + '</span></button>').join("");
   $("home-more").innerHTML = moreWins().map(w => '<span class="pair"><button class="chip" data-mw="' + esc(w.key) + '">' + esc(w.label) + '<span>+' + w.xp + '</span></button><button class="chip add" data-pin="' + esc(w.key) + '" aria-label="Pin ' + esc(w.label) + '">+</button></span>').join("");
 
-  // Shopping list (27 Nov 2026)
-  const shop = all("shop").sort((a,b) => (a.done - b.done) || String(a.at).localeCompare(String(b.at))), left = shop.filter(x => !x.done).length;
-  $("shop-lab").textContent = "Shopping list" + (left ? " · " + left : "");
-  $("shop-list").innerHTML = shop.map(x => '<div class="shoprow' + (x.done ? " done" : "") + '"><button class="sc" data-shop="' + esc(x.id) + '" aria-pressed="' + !!x.done + '" aria-label="' + esc(x.t) + '">' + (x.done ? "✓" : "") + '</button><span>' + esc(x.t) + '</span><button class="x" data-shopdel="' + esc(x.id) + '" aria-label="Remove ' + esc(x.t) + '">×</button></div>').join("") || '<div class="empty">Nothing on it.</div>';
-  $("shop-clear").hidden = !shop.some(x => x.done);
   // Offline
   const off = get("meta","offline") || {}, wkOff = get("offline", mon) || {}, offDone = wkOff.done || [];
   const offN = id => (wkOff.n || {})[id] || (offDone.includes(id) ? 1 : 0);
@@ -620,7 +615,15 @@ $("wi-form").addEventListener("submit", e => { e.preventDefault(); const t = $("
   $("wi-text").value = ""; wiCat = "Drops"; toast($("wi-toast"), "Added to Drops.", () => del("wish", id)); });
 
 /* ---------- Admin ---------- */
+function renderShop(){
+  // Shopping list (27 Nov 2026, lives in Admin)
+  const shop = all("shop").sort((a,b) => (a.done - b.done) || String(a.at).localeCompare(String(b.at))), left = shop.filter(x => !x.done).length;
+  $("shop-lab").textContent = "Shopping list" + (left ? " · " + left : "");
+  $("shop-list").innerHTML = shop.map(x => '<div class="shoprow' + (x.done ? " done" : "") + '"><button class="sc" data-shop="' + esc(x.id) + '" aria-pressed="' + !!x.done + '" aria-label="' + esc(x.t) + '">' + (x.done ? "✓" : "") + '</button><span>' + esc(x.t) + '</span><button class="x" data-shopdel="' + esc(x.id) + '" aria-label="Remove ' + esc(x.t) + '">×</button></div>').join("") || '<div class="empty">Nothing on it.</div>';
+  $("shop-clear").hidden = !shop.some(x => x.done);
+}
 function renderAdmin(){
+  renderShop();
   const steps = all("admin").sort((a,b) => (a.order||0) - (b.order||0)), done = steps.filter(s => s.state === "done").sort((a,b) => String(b.doneAt||"").localeCompare(String(a.doneAt||"")));
   const mstart = todayIso().slice(0,8) + "01", won = done.filter(s => String(s.doneAt||"") >= mstart).length;
   $("admin-count").textContent = won ? won + " won this month" : (steps.length ? done.length + " of " + steps.length + " done" : "");
