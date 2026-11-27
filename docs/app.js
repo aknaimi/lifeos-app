@@ -187,7 +187,7 @@ function renderHome(){
 
   // Tiles
   const b = get("meta","body") || {}, isos = weekDays().map(localIso);
-  const gymN = all("wins").filter(w => (w.key === "gym" || w.key === "padel") && isos.includes(w.date)).length;
+  const gymN = all("wins").filter(w => (w.key === "gym" || w.key === "padel" || w.key === "run") && isos.includes(w.date)).length;
   const m = get("meta","money") || {}, subs = subsTotal(m);
   const nb = people()[0];
   let fourth;
@@ -286,22 +286,39 @@ $("gsheet-form").addEventListener("submit", e => { e.preventDefault();
 const BR_PAT = {box:{n:"Box", d:"4 in · 4 hold · 4 out · 4 hold", ph:[["Breathe in",4,1],["Hold",4,1],["Breathe out",4,0],["Hold",4,0]]},
   calm:{n:"Calm", d:"5.5 in · 5.5 out", ph:[["Breathe in",5.5,1],["Breathe out",5.5,0]]},
   sleep:{n:"4-7-8", d:"4 in · 7 hold · 8 out", ph:[["Breathe in",4,1],["Hold",7,1],["Breathe out",8,0]]}};
-let brT = null, brTick = null, brLock = null, brEnd = 0, brStart = 0;
-const brCfg = () => Object.assign({p:"box", m:3}, ls("lifeos-breath") || {});
-function brPick(){ const c = brCfg();
+let brT = null, brTick = null, brLock = null, brEnd = 0, brStart = 0, brAC = null;
+const brCfg = () => Object.assign({p:"box", m:"wk", snd:true}, ls("lifeos-breath") || {});
+// Weekly step-up (27 Nov 2026, his rule): 3 min from Mon 30 Nov; a week with 5 of 7 mornings at target adds 10%; short of that it holds and Saturday asks why
+const BR_START = "2026-11-30", BR_BASE = 3;
+function brWeek(){ const mon = localIso(weekDays()[0]); let t = BR_BASE, w = new Date(BR_START + "T12:00:00"), last = null;
+  const daysAt = (m0, tgt) => [...Array(7)].filter((_,i) => { const d = new Date(m0); d.setDate(m0.getDate()+i); return ((get("daily", localIso(d)) || {}).breath || 0) >= tgt - 0.05; }).length;
+  while (localIso(w) < mon){ const n = daysAt(w, t); last = {target:t, days:n, passed:n >= 5}; if (n >= 5) t = Math.round(t*1.1*10)/10; w.setDate(w.getDate()+7); }
+  const started = mon >= BR_START, n = started ? daysAt(new Date(mon + "T12:00:00"), t) : 0;
+  return {target:t, days:n, last, started}; }
+const mmss = m => { const sec = Math.round(m*60); return Math.floor(sec/60) + ":" + String(sec%60).padStart(2,"0"); };
+function brTone(kind, sec){ if (!brAC || !brCfg().snd) return; const t0 = brAC.currentTime;
+  const tone = (f0, f1, start, dur, vol, type) => { const o = brAC.createOscillator(), g = brAC.createGain(); o.type = type || "sine"; o.frequency.setValueAtTime(f0, start); o.frequency.linearRampToValueAtTime(f1, start + dur);
+    g.gain.setValueAtTime(0.0001, start); g.gain.exponentialRampToValueAtTime(vol, start + Math.min(0.6, dur/3)); g.gain.setValueAtTime(vol, start + dur*0.75); g.gain.exponentialRampToValueAtTime(0.0001, start + dur); o.connect(g); g.connect(brAC.destination); o.start(start); o.stop(start + dur + 0.05); };
+  if (kind === "in") tone(196, 294, t0, sec, 0.10);
+  else if (kind === "out") tone(294, 196, t0, sec, 0.10);
+  else if (kind === "hold") tone(440, 440, t0, 0.35, 0.03);
+  else if (kind === "end"){ tone(523, 523, t0, 2.2, 0.12); tone(784, 784, t0 + 0.25, 2.2, 0.08); } }
+function brPick(){ const c = brCfg(), bw = brWeek();
+  $("br-week").innerHTML = bw.started ? "This week: <b>" + mmss(bw.target) + "</b> a morning · " + bw.days + " of 5 mornings" + (bw.last ? (bw.last.passed ? " · up 10% from last week" : " · holding, last week was " + bw.last.days + " of 5") : "") : "Starts Mon 30 Nov at 3 minutes a morning. 5 mornings in a week, and it goes up 10%.";
   $("br-pats").innerHTML = Object.entries(BR_PAT).map(([k,v]) => '<button class="chip' + (c.p === k ? " on" : "") + '" data-brp="' + k + '"><b>' + v.n + '</b><span class="small"> ' + v.d + '</span></button>').join("");
-  $("br-mins").innerHTML = [1,3,5,10].map(m => '<button class="chip' + (c.m === m ? " on" : "") + '" data-brm="' + m + '">' + m + ' min</button>').join("");
+  $("br-mins").innerHTML = '<button class="chip' + (c.m === "wk" ? " on" : "") + '" data-brm="wk">This week · ' + mmss(bw.target) + '</button>' + [5,10].map(m => '<button class="chip' + (c.m === m ? " on" : "") + '" data-brm="' + m + '">' + m + ' min</button>').join("") + '<button class="chip' + (c.snd ? " on" : "") + '" data-brs="1">' + (c.snd ? "🔊 Sound on" : "🔇 Sound off") + '</button>';
   $("br-setup").hidden = false; $("br-run").hidden = true; $("br-word").textContent = "Ready"; $("br-left").textContent = ""; $("br-orb").style.transitionDuration = "0s"; $("br-orb").classList.remove("big"); }
 function brOpen(){ brPick(); $("bsheet").hidden = false; }
-async function brGo(){ const c = brCfg(), pat = BR_PAT[c.p].ph; $("br-setup").hidden = true; $("br-run").hidden = false;
+async function brGo(){ const c = brCfg(), pat = BR_PAT[c.p].ph, mins = c.m === "wk" ? brWeek().target : Number(c.m) || 3; $("br-setup").hidden = true; $("br-run").hidden = false;
+  if (c.snd){ try { if (navigator.audioSession) navigator.audioSession.type = "playback"; brAC = brAC || new (window.AudioContext || window.webkitAudioContext)(); brAC.resume(); } catch(e){ brAC = null; } }
   try { if (navigator.wakeLock) brLock = await navigator.wakeLock.request("screen"); } catch(e){}
-  brStart = Date.now(); brEnd = brStart + c.m*60000; let i = 0;
+  brStart = Date.now(); brEnd = brStart + mins*60000; let i = 0;
   const step = () => { if (Date.now() >= brEnd && i % pat.length === 0) return brDone(true);
-    const [w, sec, big] = pat[i % pat.length]; $("br-word").textContent = w; const o = $("br-orb"); o.style.transitionDuration = sec + "s"; o.classList.toggle("big", !!big); i++; brT = setTimeout(step, sec*1000); };
+    const [w, sec, big] = pat[i % pat.length]; $("br-word").textContent = w; const o = $("br-orb"); o.style.transitionDuration = sec + "s"; o.classList.toggle("big", !!big); brTone(w === "Hold" ? "hold" : big ? "in" : "out", sec); i++; brT = setTimeout(step, sec*1000); };
   const left = () => { const r = Math.max(0, Math.ceil((brEnd - Date.now())/1000)); $("br-left").textContent = r ? Math.floor(r/60) + ":" + String(r%60).padStart(2,"0") : "last breath"; };
   left(); brTick = setInterval(left, 1000); step(); }
 function brStop(){ clearTimeout(brT); clearInterval(brTick); brT = brTick = null; try { brLock && brLock.release(); } catch(e){} brLock = null; }
-function brDone(full){ const mins = Math.round((Date.now() - brStart)/6000)/10; brStop();
+function brDone(full){ const mins = Math.round((Date.now() - brStart)/6000)/10; brStop(); if (full) brTone("end");
   if (mins >= 1){ const d = todayIso(), cur = Object.assign({date:d}, get("daily", d) || {}), done = (cur.done || []).slice();
     if (habits().some(x => x.id === "breath") && !done.includes("breath")) done.push("breath");
     cur.done = done; cur.breath = Math.round(((cur.breath || 0) + mins)*10)/10; set("daily", d, cur); }
@@ -311,7 +328,8 @@ function brDone(full){ const mins = Math.round((Date.now() - brStart)/6000)/10; 
 $("bsheet").addEventListener("click", e => {
   const pp = e.target.closest("[data-brp]"), mm = e.target.closest("[data-brm]");
   if (pp){ ls("lifeos-breath", Object.assign(brCfg(), {p:pp.dataset.brp})); brPick(); return; }
-  if (mm){ ls("lifeos-breath", Object.assign(brCfg(), {m:Number(mm.dataset.brm)})); brPick(); return; }
+  if (mm){ ls("lifeos-breath", Object.assign(brCfg(), {m:mm.dataset.brm === "wk" ? "wk" : Number(mm.dataset.brm)})); brPick(); return; }
+  if (e.target.closest("[data-brs]")){ const c = brCfg(); ls("lifeos-breath", Object.assign(c, {snd:!c.snd})); brPick(); return; }
   if (e.target.closest("#br-go")){ brGo(); return; }
   if (e.target.closest("#br-stop")){ brDone(false); return; }
   if (e.target.closest("#br-close") || e.target === $("bsheet")){ if (brT) brDone(false); brStop(); $("bsheet").hidden = true; }
@@ -376,12 +394,40 @@ function spark(pts, opts){
   const ys = vs.map(v => H - 8 - (v - lo)/rng*(H - 16));
   return '<svg viewBox="-6 0 312 ' + H + '" width="100%" height="' + H + '" role="img" aria-label="' + esc(opts.label) + '"><polyline fill="none" stroke="var(--glow)" stroke-width="2.5" stroke-linejoin="round" points="' + xs.map((x,i) => x.toFixed(1)+","+ys[i].toFixed(1)).join(" ") + '"/><circle cx="' + xs[xs.length-1] + '" cy="' + ys[ys.length-1] + '" r="4" fill="var(--glow)"/></svg><div class="bl"><span>' + esc(fmt(pts[0].d)) + '</span><span style="text-align:right">' + esc(fmt(pts[pts.length-1].d)) + '</span></div>';
 }
+/* ---------- 10K (27 Nov 2026): race Sun 10 Jan 2027, plan in meta/run, paces from his latest 5K ---------- */
+const secOf = t => { const m = String(t || "").trim().match(/^(\d{1,3}):(\d{2})$/); return m ? Number(m[1])*60 + Number(m[2]) : null; };
+const clock = s => Math.floor(s/60) + ":" + String(Math.round(s%60)).padStart(2,"0");
+function runPaces(r){ const t5 = secOf(r.tt5k) || secOf(r.best5k) || 1500, p5 = t5/5, goal = (secOf((r.goal||{}).proud) || 3000)/10;
+  return {easy:clock(p5*1.25) + " to " + clock(p5*1.33), tempo:clock(p5*1.07), fast:clock(p5*0.93), goal:clock(goal), pred:clock(t5*Math.pow(2,1.06))}; }
+function renderRun(){ const r = get("meta","run"); if (!r || !r.plan){ $("body-run").hidden = true; return; } $("body-run").hidden = false;
+  const today = todayIso(), wkI = Math.max(0, r.plan.findIndex((w,i) => !r.plan[i+1] || r.plan[i+1].mon > today)), w = r.plan[wkI], pc = runPaces(r);
+  const days = Math.round((new Date(r.race + "T12:00:00") - new Date(today + "T12:00:00"))/86400000), runs = all("wins").filter(x => x.key === "run" && x.run);
+  const fill = t => String(t).replace(/\{(easy|tempo|fast|goal)\}/g, (_,k) => pc[k]);
+  $("body-run").innerHTML = '<div class="lab"><span>10K · Sun 10 Jan · ' + (days > 0 ? days + " days" : days === 0 ? "today" : "done") + '</span><span>Week ' + (wkI+1) + ' of ' + r.plan.length + '</span></div>' +
+    '<div class="small" style="margin-bottom:8px">Proud: ' + esc((r.goal||{}).proud || "") + ' · OK: ' + esc((r.goal||{}).ok || "") + ' · your 5K says about ' + pc.pred + ' today' + (r.tt5k ? "" : " (time trial sets it)") + '</div>' +
+    (today < w.mon ? '<div class="small" style="margin-bottom:6px">Starts Mon ' + fmt(w.mon) + '.</div>' : "") +
+    w.runs.map(x => { const d = runs.find(y => y.run === x.id);
+      return '<div class="step' + (d ? " done" : "") + '"><button class="tick' + (d ? " on" : "") + '" data-run="' + esc(x.id) + '" aria-label="' + (d ? "Undo: " : "Done: ") + esc(x.t) + '">' + (d ? "✓" : "") + '</button><span class="t"><b style="font-weight:500">' + esc(x.t) + '</b><span>' + esc(fill(x.d)) + '</span>' +
+        (x.tt || x.race ? '<span class="cap" style="margin-top:6px"><input class="field" data-rtime="' + (x.race ? "race" : "tt5k") + '" placeholder="' + (x.race ? "Race time, like 52:30" : "Your 5K time, like 24:40") + '" inputmode="numeric" value="' + esc(x.race ? (r.raceTime || "") : (r.tt5k || "")) + '" aria-label="Time"><button class="btn solid" data-rsave="' + (x.race ? "race" : "tt5k") + '">Save</button></span>' : "") + '</span><span></span></div>'; }).join("") +
+    '<details style="margin-top:8px"><summary class="small">Whole plan ▾</summary>' + r.plan.map((wk,i) => '<div class="small" style="margin-top:6px"><b style="color:var(--fg);font-weight:500">Week ' + (i+1) + ' · ' + fmt(wk.mon) + '</b><br>' + wk.runs.map(x => (runs.some(y => y.run === x.id) ? "✓ " : "") + esc(x.t)).join(" · ") + '</div>').join("") +
+    '<div class="small" style="margin-top:8px">' + esc(r.rule || "") + '</div></details>';
+}
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-run]");
+  if (t){ const r = get("meta","run"), x = r.plan.flatMap(w => w.runs).find(y => y.id === t.dataset.run), d = all("wins").find(y => y.key === "run" && y.run === x.id);
+    if (d){ del("wins", d.id); return; } add("wins", {key:"run", label:"Run · " + x.t, run:x.id, xp:20, date:todayIso(), at:nowIso(), synced:false}); pop(20, t); return; }
+  const sv = e.target.closest("[data-rsave]");
+  if (sv){ const k = sv.dataset.rsave, v = (document.querySelector('[data-rtime="' + k + '"]') || {}).value || "";
+    if (!secOf(v)){ toast($("body-toast"), "Type it as minutes:seconds, like 24:40."); return; }
+    update("meta","run", k === "race" ? {raceTime:v.trim()} : {tt5k:v.trim(), ttDate:todayIso()}); toast($("body-toast"), k === "race" ? "Race time saved." : "5K saved. Every pace in the plan just updated."); }
+});
 function renderBody(){
+  renderRun();
   const b = get("meta","body") || {}, days = weekDays(), isos = days.map(localIso);
-  const gyms = all("wins").filter(w => w.key === "gym" || w.key === "padel"), wk = gyms.filter(g => isos.includes(g.date));
+  const gyms = all("wins").filter(w => w.key === "gym" || w.key === "padel" || w.key === "run"), wk = gyms.filter(g => isos.includes(g.date));
   $("body-updated").textContent = b.updated ? "Updated " + b.updated : "";
   $("body-weekLab").textContent = "This week · " + wk.length + " of " + (b.minPerWeek || 2) + " minimum";
-  $("body-week").innerHTML = days.map(d => { const di = localIso(d), g = wk.find(x => x.date === di); return '<div class="day' + (g ? " on" : "") + (di === todayIso() ? " today" : "") + '">' + d.toLocaleDateString("en-GB",{weekday:"short"}) + '<b>' + (g ? (g.key === "padel" ? "P" : (g.session || "✓")) : d.getDate()) + '</b></div>'; }).join("");
+  $("body-week").innerHTML = days.map(d => { const di = localIso(d), g = wk.find(x => x.date === di); return '<div class="day' + (g ? " on" : "") + (di === todayIso() ? " today" : "") + '">' + d.toLocaleDateString("en-GB",{weekday:"short"}) + '<b>' + (g ? (g.key === "padel" ? "P" : g.key === "run" ? "R" : (g.session || "✓")) : d.getDate()) + '</b></div>'; }).join("");
   const plan = b.plan || [], lastG = gyms.filter(g => g.session).sort((a,c) => String(c.at).localeCompare(String(a.at)))[0];
   let ni = plan.findIndex(p => p.id === (lastG ? lastG.session : b.lastSession)); ni = plan.length ? (ni + 1) % plan.length : -1;
   const sel = plan.find(p => p.id === pick) || plan[ni];

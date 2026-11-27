@@ -14,7 +14,7 @@
 <link rel="icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=12">
+<link rel="stylesheet" href="app.css?v=13">
 </head>
 <body>
 <div class="sync" id="sync" hidden></div>
@@ -78,6 +78,7 @@
   <div class="top"><span class="brand">Health</span><span class="small" id="body-updated"></span></div>
   <section class="fuelrow"><span class="small" id="body-fuelN">Food today</span><div class="chips" id="body-fuel"></div></section>
   <section class="panel"><div class="lab" id="body-weekLab">This week</div><div class="week7" id="body-week"></div></section>
+  <section class="panel run" id="body-run" hidden></section>
   <section class="panel">
     <div class="lab">Pick today's session</div><div class="grid3" id="body-picks"></div>
     <div id="body-ex" style="margin-top:12px"></div>
@@ -195,6 +196,7 @@
 <div class="sheet breathe" id="bsheet" hidden><div class="sheetin">
   <div class="lab"><span class="focus-s" style="color:var(--fg)">Breathe</span><button class="link" id="br-close">Close</button></div>
   <div class="orbwrap"><div class="orb" id="br-orb"></div><div class="orbtxt"><b id="br-word">Ready</b><span class="small" id="br-left"></span></div></div>
+  <div class="small" id="br-week" style="text-align:center;margin:-6px 0 12px"></div>
   <div id="br-setup"><div class="chips brpats" id="br-pats"></div><div class="chips" id="br-mins" style="margin-top:10px"></div><button class="btn solid" id="br-go" style="width:100%;margin-top:14px">Start</button></div>
   <div id="br-run" hidden><button class="btn" id="br-stop" style="width:100%">Stop</button></div>
 </div></div>
@@ -235,6 +237,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
-<script src="app.js?v=12"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>

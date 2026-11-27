@@ -348,3 +348,8 @@ form.g .full{grid-column:1/-1}
 .brpats .chip{text-align:left}
 @media (prefers-reduced-motion:reduce){.orb{transition-duration:0s!important}}
 .brpats .chip{border-radius:14px;color:inherit;font-family:inherit}
+
+/* 10K plan (27 Nov 2026) */
+.panel.run .lab span:first-child{color:var(--glow)}
+.panel.run .cap{display:flex;gap:8px}
+.panel.run .cap .field{flex:1;min-width:0}

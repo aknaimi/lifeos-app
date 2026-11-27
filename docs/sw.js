@@ -1,5 +1,5 @@
 // Life OS service worker: keeps the app shell on the phone so it opens instantly, even offline (on a flight too).
-const CACHE = "lifeos-v27";
+const CACHE = "lifeos-v28";
 const SHELL = ["./", "index.html", "app.css", "app.js", "config.js", "aurora.jpg", "manifest.webmanifest", "icon-180.png",
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"];
 const CDN = ["cdn.jsdelivr.net", "fonts.googleapis.com", "fonts.gstatic.com"];
