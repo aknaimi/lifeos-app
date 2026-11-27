@@ -171,6 +171,9 @@ function renderHome(){
   const dayN = done.includes(todayIso()) ? done.length : done.length + 1;
   $("home-tonight").innerHTML = '<div class="lab"><span>Tonight' + (new Date().getHours() < 18 ? " · from 18:00" : "") + '</span><span>day ' + Math.min(dayN,30) + ' of 30</span></div><div class="focus-s">' + (td.done ? "Saved tonight · +" + tdx : "Today's wins, no matter how small") + '</div><div class="small">' + (td.done ? wn + ' wins · ' + gn + ' grateful · tap to add' : '5 wins · 3 grateful · +2 a line')  + '</div>';
 
+  // Out there: the event he's going to, else the best pick
+  const ev = evLive(), ego = ev.find(x => x.going) || ev.find(x => x.best) || ev[0];
+  $("home-events").hidden = !ego; if (ego) $("home-events").innerHTML = '<span class="small">' + (ego.going ? "🎯 You're going" : "🎯 Out there this week") + '</span><b>' + esc(ego.t) + '</b><span class="small">' + esc(evDay(ego.start)) + (ev.length > 1 ? " · " + ev.length + " picks ›" : " ›") + '</span>';
   // Daily habits
   const hb = habits(), hd = (get("daily", todayIso()) || {}).done || [], wkIsos = weekDays().map(localIso).filter(d => d <= todayIso());
   $("home-daily").innerHTML = '<div class="lab"><span>Daily · ' + hb.filter(x => hd.includes(x.id)).length + ' of ' + hb.length + ' today</span><span><button class="link" id="home-breathe">Breathe</button> · <button class="link" id="home-editHabs">Edit</button></span></div><div class="habs">' +
@@ -445,7 +448,7 @@ function renderBody(){
   $("body-chart").innerHTML = spark(pts, {label:strEx + " weight over time", empty:"Log " + esc(strEx || "an exercise") + " twice and your strength line appears here."});
   $("body-strPick").innerHTML = names.map(n => '<button class="chip sm' + (n === strEx ? " on" : "") + '" data-str="' + esc(n) + '">' + esc(n) + '</button>').join("");
   // Fuel
-  const F = [{k:"water",t:"Water on waking"},{k:"breakfast",t:"Breakfast"},{k:"lunch",t:"Lunch"},{k:"dinner",t:"Dinner"},{k:"shake",t:"Protein yogurt"},{k:"creatine",t:"Creatine 10 g"}];
+  const F = [{k:"wcr",t:"Morning water + creatine 10 g"},{k:"breakfast",t:"Breakfast"},{k:"lunch",t:"Lunch"},{k:"dinner",t:"Dinner"},{k:"shake",t:"Protein yogurt"}];
   const td = get("fuel", todayIso()) || {};
   $("body-fuelN").textContent = "Food today · " + F.filter(f => td[f.k]).length + " of " + F.length;
   $("body-fuel").innerHTML = F.map(f => '<button class="chip sm' + (td[f.k] ? " on" : "") + '" data-fuel="' + esc(f.k) + '">' + (td[f.k] ? "✓ " : "") + esc(f.t) + '</button>').join("");
@@ -625,7 +628,14 @@ function people(){
 }
 const inText = n => n === 0 ? "Today" : n === 1 ? "Tomorrow" : "in " + n + " days";
 const inShort = n => n === 0 ? "Today" : n === 1 ? "Tmrw" : n < 7 ? new Date(Date.now() + n*86400000).toLocaleDateString("en-GB",{weekday:"short"}) : n + " days";
+/* ---------- Out there: events picked by /life (27 Nov 2026, his ask: "click and sign up") ---------- */
+const evDay = iso => new Date(iso).toLocaleDateString("en-GB",{weekday:"short", day:"numeric", month:"short"}) + ", " + new Date(iso).toLocaleTimeString("en-GB",{hour:"2-digit", minute:"2-digit"});
+const evLive = () => { const now = Date.now() - 2*3600000; return all("events").filter(e => e.start && new Date(e.start).getTime() > now).sort((a,b) => String(a.start).localeCompare(String(b.start))); };
+function renderEvents(){ const ev = evLive();
+  $("pe-events").innerHTML = '<div class="lab"><span>Out there · next 7 days</span><span>' + ev.length + '</span></div>' + (ev.map(e => '<div class="evrow' + (e.going ? " going" : "") + '"><div class="t"><b>' + (e.best ? "★ " : "") + esc(e.t) + '</b><span>' + esc(evDay(e.start)) + (e.where ? " · " + esc(e.where) : "") + (e.price ? " · " + esc(e.price) : "") + '</span>' + (e.why ? '<span class="why">' + esc(e.why) + '</span>' : "") + '</div><div class="evbtns">' + (e.url ? '<a class="btn solid sm" href="' + esc(e.url) + '" target="_blank" rel="noopener">Sign up ↗</a>' : "") + '<button class="btn sm' + (e.going ? " on" : "") + '" data-going="' + esc(e.id) + '">' + (e.going ? "✓ Going" : "Going?") + '</button></div></div>').join("") || '<div class="empty">Saturday\'s /life drops the week\'s picks here.</div>'); }
+document.addEventListener("click", e => { const g = e.target.closest("[data-going]"); if (!g) return; const d = get("events", g.dataset.going) || {}; update("events", g.dataset.going, {going:!d.going}); });
 function renderPeople(){
+  renderEvents();
   const ps = people();
   $("pe-next").innerHTML = ps.slice(0,5).map(p => { const ideas = openGifts().filter(g => g.who.toLowerCase() === p.name.toLowerCase());
     return '<div class="row"><span class="t">' + esc(p.name) + '<span>birthday' + (ideas.length ? " · idea: " + esc(ideas[0].t) : p.days <= 14 ? " · a message or a gift?" : "") + '</span></span><span class="' + (p.days <= 7 ? "warn" : "small") + '">' + esc(p.days < 7 ? inShort(p.days) + " " + p.next.getDate() : p.next.getDate() + " " + MONTHS[p.next.getMonth()].slice(0,3)) + '</span></div>'; }).join("") || '<div class="empty">Birthdays show here after the first sync.</div>';

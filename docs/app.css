@@ -353,3 +353,18 @@ form.g .full{grid-column:1/-1}
 .panel.run .lab span:first-child{color:var(--glow)}
 .panel.run .cap{display:flex;gap:8px}
 .panel.run .cap .field{flex:1;min-width:0}
+
+/* Out there: events (27 Nov 2026) */
+.evrow{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-top:1px solid var(--line)}
+.evrow:first-of-type{border-top:0}
+.evrow .t{display:flex;flex-direction:column;gap:3px}
+.evrow .t b{font-weight:500}
+.evrow .t span{font-size:13px;color:var(--muted)}
+.evrow .t .why{color:inherit;opacity:.85}
+.evrow .evbtns{display:flex;gap:8px}
+.evrow .evbtns .btn{flex:1;text-align:center;text-decoration:none}
+.evrow.going .t b{color:var(--glow)}
+.btn.on{border-color:var(--glow);color:var(--glow)}
+.evhome{display:flex;flex-direction:column;gap:3px;text-decoration:none;color:inherit}
+.evhome b{font-weight:500}
+.evrow .evbtns a.btn{display:flex;align-items:center;justify-content:center}
