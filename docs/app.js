@@ -260,7 +260,14 @@ $("wsheet-t").addEventListener("input", () => { const v = $("wsheet-t").value; $
 $("wsheet-save").addEventListener("click", () => { const v = $("wsheet-t").value, d = wakeDay || todayIso(); if (!/^\d{2}:\d{2}$/.test(v)) return; set("wake", d, Object.assign({}, get("wake", d) || {}, {date:d, t:v, at:nowIso()})); $("wsheet").hidden = true; $("home-tileToast").textContent = "Up at " + v + (d === todayIso() ? "" : " on " + fmt(d)) + ". Saved."; });
 $("home-ring").addEventListener("click", () => { $("home-stats").open = !$("home-stats").open; });
 
-let wakeDay = null;
+let wakeDay = null, offEdit = null;
+const OFF_BG = ["linear-gradient(160deg,#1f6fb2,#47b3e0)","linear-gradient(160deg,#7a3b1f,#e0955a)","linear-gradient(160deg,#36553a,#9bb874)","linear-gradient(160deg,#5e4033,#d8b48a)","linear-gradient(160deg,#1b1b2f,#8a5cf6)","linear-gradient(160deg,#6b2c4a,#e07aa0)"];
+function offRender(){ $("fsheet-rows").innerHTML = offEdit.map((x,i) => '<div class="er"><input class="field" data-fi="' + i + '" data-ff="em" value="' + esc(x.em || "") + '" aria-label="Emoji" style="text-align:center"><input class="field" data-fi="' + i + '" data-ff="name" value="' + esc(x.name) + '" aria-label="Name"><button class="x" data-fdel="' + i + '" aria-label="Remove ' + esc(x.name) + '">×</button></div>').join(""); }
+$("home-editOff").addEventListener("click", () => { offEdit = ((get("meta","offline") || {}).recharges || []).map(x => Object.assign({}, x)); offRender(); $("fsheet").hidden = false; });
+$("fsheet-rows").addEventListener("input", e => { const i = e.target.dataset.fi; if (i != null) offEdit[i][e.target.dataset.ff] = e.target.value; });
+$("fsheet-rows").addEventListener("click", e => { const d = e.target.closest("[data-fdel]"); if (d){ offEdit.splice(Number(d.dataset.fdel),1); offRender(); } });
+$("fsheet-add").addEventListener("click", () => { offEdit.push({id:"r" + rid().slice(0,6), name:"New one", em:"⭐", bg:OFF_BG[offEdit.length % OFF_BG.length]}); offRender(); const f = $("fsheet-rows").querySelectorAll("[data-ff=name]"); f[f.length-1].select(); });
+$("fsheet-done").addEventListener("click", () => { if (offEdit){ const keep = offEdit.filter(x => String(x.name).trim()).map(x => Object.assign({}, x, {name:String(x.name).trim(), em:String(x.em || "").trim()})); update("meta","offline",{recharges:keep, updated:todayIso()}); } offEdit = null; $("fsheet").hidden = true; });
 $("gsheet-cancel").addEventListener("click", () => { $("gsheet").hidden = true; });
 $("gsheet").addEventListener("click", e => { if (e.target.id === "gsheet") $("gsheet").hidden = true; });
 $("gsheet-form").addEventListener("submit", e => { e.preventDefault();

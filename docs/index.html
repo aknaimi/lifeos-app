@@ -56,7 +56,7 @@
   </section>
 
   <section class="panel">
-    <div class="lab"><span>For me</span><span>tap = +10</span></div>
+    <div class="lab"><span>For me · tap = +10</span><button class="link" id="home-editOff">Edit</button></div>
     <div id="home-strip"></div><div class="toast" id="home-offToast" aria-live="polite"></div>
   </section>
 
@@ -197,6 +197,12 @@
   <form id="gsheet-form" autocomplete="off"><input class="field" id="gsheet-t" placeholder="e.g. Leather wallet for Robin" aria-label="Gift idea and who it's for" enterkeyhint="done" list="gifts-names">
   <div class="small" id="gsheet-note" style="margin:6px 0 14px">Idea, then "for" and who.</div>
   <div class="grid2"><button class="btn" type="button" id="gsheet-cancel">Cancel</button><button class="btn solid" type="submit">Save</button></div></form>
+</div></div>
+<div class="sheet" id="fsheet" hidden><div class="sheetin">
+  <div class="lab"><span class="focus-s" style="color:var(--fg)">For me</span><button class="link" id="fsheet-done">Done</button></div>
+  <div class="small" style="margin-bottom:8px">Your hobbies and recharges. Rename, remove, or add one.</div>
+  <div id="fsheet-rows"></div>
+  <button class="btn" id="fsheet-add" style="width:100%">+ Add one</button>
 </div></div>
 <div class="sheet" id="wsheet" hidden><div class="sheetin" style="text-align:center">
   <div class="small" id="wsheet-q">What time were you up?</div>

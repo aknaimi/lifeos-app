@@ -310,3 +310,4 @@ form.g .full{grid-column:1/-1}
 .hab .hw{font-size:10px;color:var(--muted)}
 .hab:active .hc{transform:scale(.94)}
 #hsheet .er{grid-template-columns:56px minmax(0,1fr) 36px}
+#fsheet .er{grid-template-columns:56px minmax(0,1fr) 36px}
