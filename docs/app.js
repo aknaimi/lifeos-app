@@ -239,9 +239,10 @@ document.addEventListener("click", e => {
   const hbb = e.target.closest("[data-hab]");
   if (hbb){ const d = todayIso(), cur = Object.assign({date:d}, get("daily", d) || {}), done = (cur.done || []).slice(), i = done.indexOf(hbb.dataset.hab); if (i >= 0) done.splice(i,1); else { done.push(hbb.dataset.hab); pop("✓", hbb); } cur.done = done; set("daily", d, cur); return; }
   if (e.target.closest("#home-editHabs")){ habEdit = habits().map(x => Object.assign({}, x)); habRender(); $("hsheet").hidden = false; return; }
-  const sh = e.target.closest("[data-shop]"); if (sh){ const it = get("shop", sh.dataset.shop); if (it) update("shop", sh.dataset.shop, {done:!it.done}); return; }
+  const sh = e.target.closest("[data-shop]"); if (sh){ const it = get("shop", sh.dataset.shop); if (!it) return; update("shop", sh.dataset.shop, {done:!it.done, doneAt:it.done ? "" : nowIso()});
+    if (!it.done){ const u = ((get("meta","shopUsual") || {}).items || []).filter(t => t.toLowerCase() !== it.t.toLowerCase()); set("meta","shopUsual",{items:[it.t].concat(u).slice(0,30)}); } return; }
+  const sa = e.target.closest("[data-shopadd]"); if (sa){ if (!shopHas(sa.dataset.shopadd)) add("shop", {t:sa.dataset.shopadd, done:false, at:nowIso()}); return; }
   const sd = e.target.closest("[data-shopdel]"); if (sd){ del("shop", sd.dataset.shopdel); return; }
-  if (e.target.closest("#shop-clear")){ all("shop").filter(x => x.done).forEach(x => del("shop", x.id)); return; }
   if (e.target.closest("#home-gift")){ $("gsheet-t").value = ""; $("gsheet").hidden = false; setTimeout(() => $("gsheet-t").focus(), 50); return; }
   const wk = e.target.closest("#home-wake");
   if (wk){ const wdb = e.target.closest("[data-wd]"), d = wdb ? wdb.dataset.wd : todayIso(), cur = get("wake", d), n = new Date();
@@ -264,7 +265,7 @@ $("wsheet-save").addEventListener("click", () => { const v = $("wsheet-t").value
 $("home-ring").addEventListener("click", () => { $("home-stats").open = !$("home-stats").open; });
 
 let wakeDay = null, offEdit = null;
-$("shop-form").addEventListener("submit", e => { e.preventDefault(); $("shop-t").value.split(",").map(x => x.trim()).filter(Boolean).forEach(t => add("shop", {t, done:false, at:nowIso()})); $("shop-t").value = ""; });
+$("shop-form").addEventListener("submit", e => { e.preventDefault(); $("shop-t").value.split(",").map(x => x.trim()).filter(Boolean).filter(t => !shopHas(t)).forEach(t => add("shop", {t, done:false, at:nowIso()})); $("shop-t").value = ""; $("shop-t").focus(); });
 const OFF_BG = ["linear-gradient(160deg,#1f6fb2,#47b3e0)","linear-gradient(160deg,#7a3b1f,#e0955a)","linear-gradient(160deg,#36553a,#9bb874)","linear-gradient(160deg,#5e4033,#d8b48a)","linear-gradient(160deg,#1b1b2f,#8a5cf6)","linear-gradient(160deg,#6b2c4a,#e07aa0)"];
 function offRender(){ $("fsheet-rows").innerHTML = offEdit.map((x,i) => '<div class="er"><input class="field" data-fi="' + i + '" data-ff="em" value="' + esc(x.em || "") + '" aria-label="Emoji" style="text-align:center"><input class="field" data-fi="' + i + '" data-ff="name" value="' + esc(x.name) + '" aria-label="Name"><button class="x" data-fdel="' + i + '" aria-label="Remove ' + esc(x.name) + '">×</button></div>').join(""); }
 $("home-editOff").addEventListener("click", () => { offEdit = ((get("meta","offline") || {}).recharges || []).map(x => Object.assign({}, x)); offRender(); $("fsheet").hidden = false; });
@@ -615,12 +616,17 @@ $("wi-form").addEventListener("submit", e => { e.preventDefault(); const t = $("
   $("wi-text").value = ""; wiCat = "Drops"; toast($("wi-toast"), "Added to Drops.", () => del("wish", id)); });
 
 /* ---------- Admin ---------- */
+const shopHas = t => all("shop").some(x => !x.done && x.t.toLowerCase() === t.toLowerCase());
 function renderShop(){
-  // Shopping list (27 Nov 2026, lives in Admin)
+  // Shopping list (27 Nov 2026, lives at the top of Admin). Easy above all: tap a row to tick it, ticked ones
+  // clear themselves after 6 hours, and anything bought before comes back as a one-tap chip.
+  const now = Date.now(), stale = all("shop").filter(x => x.done && x.doneAt && now - new Date(x.doneAt).getTime() > 6*3600000);
+  if (stale.length){ stale.forEach(x => del("shop", x.id)); return; }
   const shop = all("shop").sort((a,b) => (a.done - b.done) || String(a.at).localeCompare(String(b.at))), left = shop.filter(x => !x.done).length;
-  $("shop-lab").textContent = "Shopping list" + (left ? " · " + left : "");
-  $("shop-list").innerHTML = shop.map(x => '<div class="shoprow' + (x.done ? " done" : "") + '"><button class="sc" data-shop="' + esc(x.id) + '" aria-pressed="' + !!x.done + '" aria-label="' + esc(x.t) + '">' + (x.done ? "✓" : "") + '</button><span>' + esc(x.t) + '</span><button class="x" data-shopdel="' + esc(x.id) + '" aria-label="Remove ' + esc(x.t) + '">×</button></div>').join("") || '<div class="empty">Nothing on it.</div>';
-  $("shop-clear").hidden = !shop.some(x => x.done);
+  const onList = new Set(shop.filter(x => !x.done).map(x => x.t.toLowerCase())), usual = ((get("meta","shopUsual") || {}).items || []).filter(t => !onList.has(t.toLowerCase())).slice(0,12);
+  $("shop-lab").textContent = "Shopping list" + (left ? " · " + left + " to get" : "");
+  $("shop-list").innerHTML = shop.map(x => '<div class="shoprow' + (x.done ? " done" : "") + '"><button class="shopt" data-shop="' + esc(x.id) + '" aria-pressed="' + !!x.done + '"><span class="sc">' + (x.done ? "✓" : "") + '</span><span>' + esc(x.t) + '</span></button><button class="x" data-shopdel="' + esc(x.id) + '" aria-label="Remove ' + esc(x.t) + '">×</button></div>').join("");
+  $("shop-usual").innerHTML = usual.length ? '<div class="small" style="margin:10px 0 6px">Again?</div><div class="chips">' + usual.map(t => '<button class="chip sm" data-shopadd="' + esc(t) + '">+ ' + esc(t) + '</button>').join("") + '</div>' : "";
 }
 function renderAdmin(){
   renderShop();

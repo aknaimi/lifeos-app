@@ -318,3 +318,9 @@ form.g .full{grid-column:1/-1}
 .shoprow .sc{width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:var(--soft);color:#000;cursor:pointer;font-size:13px}
 .shoprow.done .sc{background:var(--glow);border-color:var(--glow)}
 .shoprow.done span{color:var(--muted);text-decoration:line-through}
+
+.shoprow{grid-template-columns:minmax(0,1fr) 32px}
+.shopt{display:flex;align-items:center;gap:12px;min-height:44px;width:100%;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:0}
+.shopt .sc{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:var(--soft);color:#000;display:grid;place-items:center;font-size:13px}
+.shoprow.done .shopt .sc{background:var(--glow);border-color:var(--glow)}
+.shoprow.done .shopt span:last-child{color:var(--muted);text-decoration:line-through}
